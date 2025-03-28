@@ -11,12 +11,19 @@ enum CameraError: Error {
     case unknown
 }
 
+public enum CameraPosition {
+    case front
+    case back
+}
+
 public class CameraService {
     
     // MARK: - Properties
     var session: AVCaptureSession?
     var delegate: AVCaptureFileOutputRecordingDelegate?
     var videoOutput: AVCaptureMovieFileOutput?
+    var currentCameraPosition: CameraPosition = .back
+    var videoDeviceInput: AVCaptureDeviceInput?
     
     let sessionQueue = DispatchQueue(label: "com.example.sessionQueue")
     let videoSettings: VideoSettings
@@ -57,29 +64,8 @@ public class CameraService {
         // Set the video quality preset
         session.sessionPreset = AVCaptureSession.Preset.high
         
-        // Add video input
-        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
-            throw CameraError.noCamerasAvailable
-        }
-        
-        do {
-            // Configure device for high frame rate
-            try device.lockForConfiguration()
-            if device.activeFormat.isHighFrameRateSupported(fps: videoSettings.frameRate) {
-                device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(videoSettings.frameRate))
-                device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(videoSettings.frameRate))
-            }
-            device.unlockForConfiguration()
-            
-            let videoInput = try AVCaptureDeviceInput(device: device)
-            if session.canAddInput(videoInput) {
-                session.addInput(videoInput)
-            } else {
-                throw CameraError.inputsAreInvalid
-            }
-        } catch {
-            throw CameraError.inputsAreInvalid
-        }
+        // Add video input for the current camera position
+        try setupVideoInput(position: currentCameraPosition, session: session)
         
         // Add audio input
         if let audioDevice = AVCaptureDevice.default(for: .audio),
@@ -170,6 +156,94 @@ public class CameraService {
         let tempDir = FileManager.default.temporaryDirectory
         let fileName = "\(Date().timeIntervalSince1970).mov"
         return tempDir.appendingPathComponent(fileName)
+    }
+    
+    // MARK: - Camera Position Methods
+    
+    /// Setup video input for the specified camera position
+    private func setupVideoInput(position: CameraPosition, session: AVCaptureSession) throws {
+        // Get device position
+        let devicePosition: AVCaptureDevice.Position = position == .back ? .back : .front
+        
+        // Find camera device
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: devicePosition) else {
+            throw CameraError.noCamerasAvailable
+        }
+        
+        do {
+            // Configure device for high frame rate
+            try device.lockForConfiguration()
+            if device.activeFormat.isHighFrameRateSupported(fps: videoSettings.frameRate) {
+                device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(videoSettings.frameRate))
+                device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(videoSettings.frameRate))
+            }
+            device.unlockForConfiguration()
+            
+            // Create and add video input
+            let videoInput = try AVCaptureDeviceInput(device: device)
+            self.videoDeviceInput = videoInput
+            
+            if session.canAddInput(videoInput) {
+                session.addInput(videoInput)
+            } else {
+                throw CameraError.inputsAreInvalid
+            }
+        } catch {
+            throw CameraError.inputsAreInvalid
+        }
+    }
+    
+    /// Switch between front and back cameras
+    func switchCamera(completion: @escaping (Error?) -> Void) {
+        guard let session = session else {
+            completion(CameraError.captureSessionIsMissing)
+            return
+        }
+        
+        // Don't allow switching during recording
+        if isRecording {
+            completion(CameraError.captureSessionAlreadyRunning)
+            return
+        }
+        
+        // Execute on session queue
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            session.beginConfiguration()
+            
+            // Remove current input
+            if let currentInput = self.videoDeviceInput {
+                session.removeInput(currentInput)
+            }
+            
+            // Determine new position
+            let newPosition: CameraPosition = self.currentCameraPosition == .back ? .front : .back
+            self.currentCameraPosition = newPosition
+            
+            do {
+                // Setup new camera input
+                try self.setupVideoInput(position: newPosition, session: session)
+                session.commitConfiguration()
+                completion(nil)
+            } catch {
+                // If front camera is not available, revert to back camera
+                if newPosition == .front {
+                    self.currentCameraPosition = .back
+                    do {
+                        try self.setupVideoInput(position: .back, session: session)
+                        session.commitConfiguration()
+                        completion(nil)
+                    } catch {
+                        session.commitConfiguration()
+                        completion(error)
+                    }
+                } else {
+                    session.commitConfiguration()
+                    completion(error)
+                }
+            }
+        }
     }
 }
 

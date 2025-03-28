@@ -4,14 +4,16 @@ An advanced iOS application for high-frame-rate video recording with intelligent
 
 ## Project Description
 
-SlowMotionVideoApp is designed to record high-quality 120FPS videos that can be activated by a voice command ("ready"). The app allows users to configure recording duration (default 10 seconds) and automatically loops recorded videos with customizable playback speeds (default half-speed) until receiving another record instruction. It includes a voice command pronunciation trainer to improve recognition accuracy and comprehensive cloud storage/sharing options for saved videos.
+SlowMotionVideoApp is designed to record high-quality 120FPS videos that can be activated by a voice command ("ready"). The app allows users to configure recording duration (default 10 seconds) and automatically loops recorded videos with customizable playback speeds (ranging from 0.25x to 2.0x in 0.25 increments, default: 0.5x) until receiving another record instruction. Users can easily switch between front and back cameras for versatile recording options. It includes a voice command pronunciation trainer to improve recognition accuracy and comprehensive cloud storage/sharing options for saved videos.
 
 ## Key Features
 
 - **High-frame-rate recording** (120FPS) for smooth slow-motion playback
 - **Voice-activated recording** using the "ready" command
 - **Configurable recording duration** (5-30 seconds)
-- **Multiple playback speeds**: 1/4, 1/3, 1/2, 3/4, and normal speed
+- **Flexible playback speeds**: From 0.25x to 2.0x in 0.25 increments
+- **Front and back camera switching** for versatile recording options
+- **Visual feedback** for slow-motion and fast-motion effects
 - **Voice command training** to improve recognition accuracy
 - **Cloud storage integration** with multiple providers
 - **Comprehensive sharing options** with privacy controls
@@ -63,9 +65,12 @@ The CLI simulator allows you to test the core functionality of the app without n
    - `ready`: Start recording
    - `settings`: Change recording duration
    - `speed`: Change playback speed
+   - `faster` or `+`: Increase playback speed during playback
+   - `slower` or `-`: Decrease playback speed during playback
    - `voice`: Toggle voice control
    - `train`: Practice voice commands
    - `cloud`: Upload/share videos
+   - `switch`: Toggle between front and back cameras
    - `exit`: Quit the simulator
 
 ### Real App Deployment
@@ -88,9 +93,9 @@ To build and deploy the full iOS app:
 
 - Video filters and effects
 - Background music options
-- Enhanced social sharing integration
+- Enhanced social sharing integration 
 - Analytics for video performance
-- Multi-camera support
+- External camera support
 
 ## See Also
 

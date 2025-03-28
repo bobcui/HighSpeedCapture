@@ -6,12 +6,14 @@
    - Voice-activated recording using the "ready" command
    - Configurable clip duration (5-30 seconds, default: 10 seconds)
    - Automatic loop playback after recording
+   - Front and back camera selection for versatile recording
 
 2. **Smart Playback Controls**
-   - Adjustable playback speeds: 1/4, 1/3, 1/2, 3/4, or normal speed
-   - Default: half-speed playback
+   - Adjustable playback speeds: 0.25x to 2.0x in 0.25 increments
+   - Default: 0.5x (half-speed) playback
    - Interactive speed controls during playback (+/- or faster/slower commands)
    - Continuous loop playback until a new recording begins
+   - Visual indicators for slow-motion and fast-motion effects
 
 3. **Voice Command System**
    - Voice activation with the "ready" command
@@ -42,6 +44,7 @@
 | `voice` | Toggle voice command recognition on/off |
 | `train` | Start voice command pronunciation training |
 | `cloud` | Access cloud storage and sharing options |
+| `switch` | Toggle between front and back cameras |
 | `faster` or `+` | During playback: increase playback speed |
 | `slower` or `-` | During playback: decrease playback speed |
 | `exit` | Exit the application |
@@ -58,8 +61,9 @@
 1. Enter "settings" to adjust clip duration
 2. Enter a value between 5-30 seconds
 3. Enter "speed" to change playback speed
-4. Select from 1/4, 1/3, 1/2, 3/4, or normal speed options
+4. Select from speeds ranging from 0.25x to 2.0x (in 0.25 increments)
 5. Enter "ready" to record with new settings
+6. During playback, use "faster/+" or "slower/-" to fine-tune playback speed
 
 ### Using Voice Commands
 1. Enter "voice" to enable voice control
@@ -75,6 +79,13 @@
 5. Upload video to selected provider
 6. Configure sharing options (public/private, comments, downloads)
 7. Receive sharing URL for your video
+
+### Switching Camera Views
+1. Enter "switch" to toggle from back camera to front camera
+2. Camera will initialize with new position (shown with progress indicators)
+3. Record using the current camera with "ready" command
+4. Enter "switch" again to return to the back camera
+5. Each camera position maintains optimal settings for high frame rate recording
 
 ## Implementation Notes
 

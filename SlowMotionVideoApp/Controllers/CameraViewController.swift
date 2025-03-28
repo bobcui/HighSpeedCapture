@@ -151,6 +151,15 @@ class CameraViewController: UIViewController {
         return button
     }()
     
+    private lazy var switchCameraButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "camera.rotate"), for: .normal)
+        button.tintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(switchCameraButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -193,6 +202,7 @@ class CameraViewController: UIViewController {
         view.addSubview(playbackControlButton)
         view.addSubview(voiceStatusLabel)
         view.addSubview(cloudStorageButton)
+        view.addSubview(switchCameraButton)
         
         // Setup speed control UI
         setupSpeedControlUI()
@@ -253,7 +263,13 @@ class CameraViewController: UIViewController {
             cloudStorageButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             cloudStorageButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
             cloudStorageButton.widthAnchor.constraint(equalToConstant: 44),
-            cloudStorageButton.heightAnchor.constraint(equalToConstant: 44)
+            cloudStorageButton.heightAnchor.constraint(equalToConstant: 44),
+            
+            // Switch camera button
+            switchCameraButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            switchCameraButton.topAnchor.constraint(equalTo: voiceStatusLabel.bottomAnchor, constant: 20),
+            switchCameraButton.widthAnchor.constraint(equalToConstant: 44),
+            switchCameraButton.heightAnchor.constraint(equalToConstant: 44)
         ])
     }
     
@@ -558,6 +574,64 @@ class CameraViewController: UIViewController {
         cloudStorageVC.delegate = self
         cloudStorageVC.modalPresentationStyle = .fullScreen
         present(cloudStorageVC, animated: true)
+    }
+    
+    /**
+     * Handles the camera switch button tap event
+     *
+     * This method:
+     * 1. Shows a loading indicator
+     * 2. Calls the camera service to switch between front and back cameras
+     * 3. Updates UI based on the result
+     *
+     * Camera switching is only available when not recording.
+     */
+    @objc private func switchCameraButtonTapped() {
+        // Don't allow switching during recording
+        if cameraService.isRecording {
+            showAlert(title: "Camera", message: "Cannot switch cameras while recording.")
+            return
+        }
+        
+        // Visual feedback that button was pressed
+        switchCameraButton.isEnabled = false
+        
+        // Add animation to indicate camera is switching
+        UIView.animate(withDuration: 0.3, animations: {
+            self.switchCameraButton.transform = CGAffineTransform(rotationAngle: .pi)
+            self.switchCameraButton.alpha = 0.5
+        })
+        
+        // Switch camera
+        cameraService.switchCamera { [weak self] error in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                if let error = error {
+                    // Reset button state
+                    UIView.animate(withDuration: 0.3) {
+                        self.switchCameraButton.transform = .identity
+                        self.switchCameraButton.alpha = 1.0
+                    }
+                    self.switchCameraButton.isEnabled = true
+                    
+                    // Show error
+                    self.showAlert(title: "Camera Error", message: "Failed to switch camera: \(error.localizedDescription)")
+                } else {
+                    // Successfully switched - complete animation
+                    UIView.animate(withDuration: 0.3) {
+                        self.switchCameraButton.transform = .identity
+                        self.switchCameraButton.alpha = 1.0
+                    }
+                    self.switchCameraButton.isEnabled = true
+                    
+                    // Update button icon based on current camera
+                    let currentCamera = self.cameraService.currentCameraPosition
+                    let imageName = currentCamera == .front ? "camera.rotate.fill" : "camera.rotate"
+                    self.switchCameraButton.setImage(UIImage(systemName: imageName), for: .normal)
+                }
+            }
+        }
     }
     
     // MARK: - Helper
