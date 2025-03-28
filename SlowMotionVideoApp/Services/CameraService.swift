@@ -90,19 +90,27 @@ public class CameraService {
     // MARK: - Camera Control
     func startSession() {
         sessionQueue.async { [weak self] in
-            guard let self = self, let session = self.session else { return }
+            guard let self = self, let session = self.session else { 
+                print("CameraService: Cannot start session - session is nil")
+                return 
+            }
             
-            // Check if there's a configuration already in progress
-            if !session.isRunning {
-                // Use the main queue for UI-related operations
-                DispatchQueue.main.async {
-                    do {
-                        // Start the session
-                        session.startRunning()
-                        print("Camera session started successfully")
-                    } catch {
-                        print("Error starting camera session: \(error)")
-                    }
+            // Check if session is already running
+            if session.isRunning {
+                print("CameraService: Session already running - no action needed")
+                return
+            }
+            
+            // A safety check to ensure we're not in the middle of configuration
+            if session.isRunning == false {
+                print("CameraService: Starting session on session queue")
+                
+                do {
+                    // Start the session on the session queue to avoid threading issues
+                    session.startRunning()
+                    print("CameraService: Camera session started successfully")
+                } catch {
+                    print("CameraService: Error starting camera session: \(error)")
                 }
             }
         }
@@ -251,10 +259,10 @@ public class CameraService {
                     
                     // Restart session if it was running before
                     if wasRunning {
-                        DispatchQueue.main.async {
-                            session.startRunning()
-                            print("Camera session restarted after switching cameras")
-                        }
+                        // Restart the session on the session queue to avoid threading issues
+                        print("CameraService: Restarting session after camera switch")
+                        session.startRunning()
+                        print("CameraService: Camera session restarted after switching cameras")
                     }
                     
                     completion(nil)
@@ -269,9 +277,10 @@ public class CameraService {
                             
                             // Restart session if it was running before
                             if wasRunning {
-                                DispatchQueue.main.async {
-                                    session.startRunning()
-                                }
+                                // Restart the session on the session queue to avoid threading issues
+                                print("CameraService: Restarting session after reverting to back camera")
+                                session.startRunning()
+                                print("CameraService: Camera session restarted with back camera")
                             }
                             
                             completion(nil)

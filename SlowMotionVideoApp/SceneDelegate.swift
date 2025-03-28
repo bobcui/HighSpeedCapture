@@ -11,12 +11,27 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         // Create window with the window scene
         window = UIWindow(windowScene: windowScene)
         
-        // Set camera view controller as root
+        // Set camera view controller as root, but disable autostart
         let cameraViewController = CameraViewController()
+        
+        // Disable view controller's automatic camera initialization
+        // We'll enable it after the UI is fully visible
+        cameraViewController.disableCameraAutostart = true
+        
         window?.rootViewController = cameraViewController
         
         // Make window visible
         window?.makeKeyAndVisible()
+        
+        // Delay camera initialization until after UI is fully loaded
+        // This prevents AVCaptureSession conflicts during scene connection
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self, weak cameraViewController] in
+            guard let _ = self, let cameraViewController = cameraViewController else { return }
+            
+            // Now it's safe to initialize the camera
+            print("SceneDelegate: Delayed camera initialization starting")
+            cameraViewController.enableCameraAutostart()
+        }
     }
 
     func sceneDidDisconnect(_ scene: UIScene) {

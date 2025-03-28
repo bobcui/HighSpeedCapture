@@ -19,6 +19,11 @@ class CameraViewController: UIViewController {
     private var isSpeechRecognitionActive = false
     private var hasRecordedVideo: Bool = false
     
+    // Flag to control camera autostart behavior
+    // Used to prevent camera initialization during app launch
+    var disableCameraAutostart: Bool = false
+    private var cameraInitialized: Bool = false
+    
     // MARK: - UI Elements
     private lazy var previewView: UIView = {
         let view = UIView()
@@ -178,10 +183,47 @@ class CameraViewController: UIViewController {
         super.viewWillAppear(animated)
         
         // Only start the session if it has been previously configured
-        // This avoids attempting to start during configuration which can cause crashes
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            guard let self = self, self.cameraService.session != nil else { return }
-            self.cameraService.startSession()
+        // and if autostart is not disabled
+        if !disableCameraAutostart {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard let self = self, self.cameraService.session != nil else { return }
+                print("CameraViewController: Starting camera session from viewWillAppear")
+                self.cameraService.startSession()
+            }
+        } else {
+            print("CameraViewController: Camera autostart is disabled")
+        }
+    }
+    
+    // Enable camera initialization when it's safe to do so
+    // This is called from AppDelegate after the UI is fully loaded
+    func enableCameraAutostart() {
+        print("CameraViewController: enableCameraAutostart called")
+        
+        // Reset the flag
+        disableCameraAutostart = false
+        
+        // Only initialize if not already initialized
+        if !cameraInitialized {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                print("CameraViewController: Delayed camera initialization")
+                
+                // Mark as initialized to prevent duplicate setup
+                self.cameraInitialized = true
+                
+                // Initialize and start the camera session
+                if self.cameraService.session == nil {
+                    self.configureCamera()
+                }
+                
+                // Start the session after a small delay
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
+                    guard let self = self, self.cameraService.session != nil else { return }
+                    print("CameraViewController: Starting delayed camera session")
+                    self.cameraService.startSession()
+                }
+            }
         }
     }
     
@@ -316,8 +358,12 @@ class CameraViewController: UIViewController {
         // Check camera permissions
         let isAuthorized = cameraService.checkPermissions()
         
-        if isAuthorized {
+        // Only configure the camera if autostart is not disabled
+        if isAuthorized && !disableCameraAutostart {
+            print("CameraViewController: Setting up camera in setupCamera()")
             configureCamera()
+        } else if disableCameraAutostart {
+            print("CameraViewController: Skipping camera setup due to disableCameraAutostart flag")
         }
         
         // Set up video output delegate
@@ -340,6 +386,7 @@ class CameraViewController: UIViewController {
     
     private func configureCamera() {
         do {
+            print("CameraViewController: configuring camera inside configureCamera()")
             try cameraService.setupCamera()
             guard let session = cameraService.session else {
                 print("Failed to get capture session")
@@ -354,11 +401,18 @@ class CameraViewController: UIViewController {
             previewView.layer.addSublayer(previewLayer)
             self.previewLayer = previewLayer
             
-            // Wait a moment before starting the session to ensure configuration is complete
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                guard let self = self else { return }
-                // Start session - this will be called on the main thread
-                self.cameraService.startSession()
+            // Only start the session if autostart is not disabled
+            if !disableCameraAutostart {
+                // Wait a moment before starting the session to ensure configuration is complete
+                print("CameraViewController: Scheduling delayed camera start in configureCamera()")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    guard let self = self else { return }
+                    // Start session - this will be called on the main thread
+                    print("CameraViewController: Starting camera session from configureCamera() delay")
+                    self.cameraService.startSession()
+                }
+            } else {
+                print("CameraViewController: Skipping camera session start due to disableCameraAutostart flag")
             }
         } catch {
             // Use DispatchQueue.main.async to prevent alert presentation during view controller transitions
