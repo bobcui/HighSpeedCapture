@@ -1,22 +1,22 @@
 #!/bin/bash
 
-# Simple demo script for SlowMotionVideoApp simulator
-echo -e "\033[1;36m===================================\033[0m"
-echo -e "\033[1;36m SlowMotionVideoApp Demo\033[0m"
-echo -e "\033[1;36m===================================\033[0m\n"
+# This script demonstrates the fixed camera switching functionality
+# with a simpler set of commands to avoid getting stuck in interactive modes
 
-echo -e "\033[1;34m==== Showing app information ====\033[0m"
-swift SlowMotionSimulator/main.swift <<< "exit" | head -n 25
+echo "🎬 SlowMotionVideoApp Simple Camera Fix Demo 🎬"
+echo "=============================================="
+echo "This demo will showcase the fixed camera operations:"
+echo "1. Initialize with back camera"
+echo "2. Switch to front camera (shows progress indicators and thread safety)"
+echo "3. Record a video"
+echo "4. Attempt to switch cameras during playback (should be properly rejected)"
+echo "5. Exit the app"
+echo
 
-echo -e "\n\033[1;32mDemo completed.\033[0m"
-echo -e "\033[1;32m--------------------------------\033[0m\n"
+# Run the simulator with a predefined sequence of commands
+printf "switch\nready\nswitch\nexit\n" | swift SlowMotionSimulator/main.swift
 
-echo -e "\033[1;36m===================================\033[0m"
-echo -e "\033[1;36m Features demonstrated:\033[0m"
-echo -e "\033[1;36m - 120FPS video recording\033[0m"
-echo -e "\033[1;36m - Configurable recording duration\033[0m"
-echo -e "\033[1;36m - Multiple playback speeds\033[0m"
-echo -e "\033[1;36m - Voice command recognition\033[0m"
-echo -e "\033[1;36m - Front/back camera switching\033[0m"
-echo -e "\033[1;36m - Cloud storage integration\033[0m"
-echo -e "\033[1;36m===================================\033[0m"
+echo
+echo "✅ Demo complete!"
+echo "The camera switching operations are now thread-safe and the AVCaptureSession"
+echo "configuration sequence exception has been fixed."

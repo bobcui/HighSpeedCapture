@@ -3,11 +3,14 @@ import PackageDescription
 
 let package = Package(
     name: "SlowMotionVideoApp",
-    dependencies: [],
+    products: [
+        .executable(
+            name: "SlowMotionSimulator",
+            targets: ["SlowMotionSimulator"])
+    ],
     targets: [
         .target(
             name: "SlowMotionSimulator",
-            dependencies: [],
             path: "SlowMotionSimulator")
     ]
 )

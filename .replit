@@ -35,7 +35,7 @@ task = "packager.installForAll"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "swift SlowMotionSimulator/main.swift"
+args = "./run_simulator.sh"
 
 [[workflows.workflow]]
 name = "Swift Build"

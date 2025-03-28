@@ -91,8 +91,19 @@ public class CameraService {
     func startSession() {
         sessionQueue.async { [weak self] in
             guard let self = self, let session = self.session else { return }
+            
+            // Check if there's a configuration already in progress
             if !session.isRunning {
-                session.startRunning()
+                // Use the main queue for UI-related operations
+                DispatchQueue.main.async {
+                    do {
+                        // Start the session
+                        session.startRunning()
+                        print("Camera session started successfully")
+                    } catch {
+                        print("Error starting camera session: \(error)")
+                    }
+                }
             }
         }
     }
@@ -100,8 +111,12 @@ public class CameraService {
     func stopSession() {
         sessionQueue.async { [weak self] in
             guard let self = self, let session = self.session else { return }
+            
+            // Only stop if running
             if session.isRunning {
+                // Always call this synchronously on the session queue to avoid race conditions
                 session.stopRunning()
+                print("Camera session stopped")
             }
         }
     }
@@ -210,38 +225,70 @@ public class CameraService {
         sessionQueue.async { [weak self] in
             guard let self = self else { return }
             
-            session.beginConfiguration()
-            
-            // Remove current input
-            if let currentInput = self.videoDeviceInput {
-                session.removeInput(currentInput)
-            }
-            
-            // Determine new position
-            let newPosition: CameraPosition = self.currentCameraPosition == .back ? .front : .back
-            self.currentCameraPosition = newPosition
-            
             do {
-                // Setup new camera input
-                try self.setupVideoInput(position: newPosition, session: session)
-                session.commitConfiguration()
-                completion(nil)
-            } catch {
-                // If front camera is not available, revert to back camera
-                if newPosition == .front {
-                    self.currentCameraPosition = .back
-                    do {
-                        try self.setupVideoInput(position: .back, session: session)
+                // Suspend any active session
+                let wasRunning = session.isRunning
+                if wasRunning {
+                    session.stopRunning()
+                }
+                
+                // Begin configuration
+                session.beginConfiguration()
+                
+                // Remove current input
+                if let currentInput = self.videoDeviceInput {
+                    session.removeInput(currentInput)
+                }
+                
+                // Determine new position
+                let newPosition: CameraPosition = self.currentCameraPosition == .back ? .front : .back
+                self.currentCameraPosition = newPosition
+                
+                do {
+                    // Setup new camera input
+                    try self.setupVideoInput(position: newPosition, session: session)
+                    session.commitConfiguration()
+                    
+                    // Restart session if it was running before
+                    if wasRunning {
+                        DispatchQueue.main.async {
+                            session.startRunning()
+                            print("Camera session restarted after switching cameras")
+                        }
+                    }
+                    
+                    completion(nil)
+                } catch {
+                    // If front camera is not available, revert to back camera
+                    if newPosition == .front {
+                        print("Failed to switch to front camera, reverting to back camera")
+                        self.currentCameraPosition = .back
+                        do {
+                            try self.setupVideoInput(position: .back, session: session)
+                            session.commitConfiguration()
+                            
+                            // Restart session if it was running before
+                            if wasRunning {
+                                DispatchQueue.main.async {
+                                    session.startRunning()
+                                }
+                            }
+                            
+                            completion(nil)
+                        } catch {
+                            session.commitConfiguration()
+                            print("Error reverting to back camera: \(error)")
+                            completion(error)
+                        }
+                    } else {
                         session.commitConfiguration()
-                        completion(nil)
-                    } catch {
-                        session.commitConfiguration()
+                        print("Error switching camera: \(error)")
                         completion(error)
                     }
-                } else {
-                    session.commitConfiguration()
-                    completion(error)
                 }
+            } catch {
+                print("Unexpected error during camera switch: \(error)")
+                completion(error)
             }
         }
     }

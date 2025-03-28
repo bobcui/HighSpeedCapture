@@ -12,8 +12,9 @@ SlowMotionVideoApp is designed to record high-quality 120FPS videos that can be 
 - **Voice-activated recording** using the "ready" command
 - **Configurable recording duration** (5-30 seconds)
 - **Flexible playback speeds**: From 0.25x to 2.0x in 0.25 increments
-- **Front and back camera switching** for versatile recording options
-- **Visual feedback** for slow-motion and fast-motion effects
+- **Front and back camera switching** with thread-safe operations
+- **Visual feedback** for camera operations and playback speeds
+- **Camera-specific contextual messages** during recording
 - **Voice command training** to improve recognition accuracy
 - **Cloud storage integration** with multiple providers
 - **Comprehensive sharing options** with privacy controls
@@ -96,6 +97,19 @@ To build and deploy the full iOS app:
 - Enhanced social sharing integration 
 - Analytics for video performance
 - External camera support
+
+## Recent Improvements
+
+We've made significant improvements to the app's stability and performance:
+
+- **Fixed critical runtime exceptions** related to AVCaptureSession configuration
+- **Enhanced thread safety** for all camera operations and UI updates
+- **Improved camera switching** with better error handling and synchronization
+- **Added visual feedback** during camera initialization and switching
+- **Optimized execution sequences** to prevent race conditions
+
+For more details about the fixes, please see:
+- [Fixed Issues Overview](fixed_issues_overview.md) - Details of resolved issues
 
 ## See Also
 

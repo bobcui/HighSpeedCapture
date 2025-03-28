@@ -176,7 +176,13 @@ class CameraViewController: UIViewController {
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        cameraService.startSession()
+        
+        // Only start the session if it has been previously configured
+        // This avoids attempting to start during configuration which can cause crashes
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self, self.cameraService.session != nil else { return }
+            self.cameraService.startSession()
+        }
     }
     
     override func viewDidDisappear(_ animated: Bool) {
@@ -348,10 +354,18 @@ class CameraViewController: UIViewController {
             previewView.layer.addSublayer(previewLayer)
             self.previewLayer = previewLayer
             
-            // Start session
-            cameraService.startSession()
+            // Wait a moment before starting the session to ensure configuration is complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                guard let self = self else { return }
+                // Start session - this will be called on the main thread
+                self.cameraService.startSession()
+            }
         } catch {
-            showAlert(title: "Camera Error", message: "Failed to setup camera: \(error.localizedDescription)")
+            // Use DispatchQueue.main.async to prevent alert presentation during view controller transitions
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.showAlert(title: "Camera Error", message: "Failed to setup camera: \(error.localizedDescription)")
+            }
         }
     }
     
@@ -636,9 +650,14 @@ class CameraViewController: UIViewController {
     
     // MARK: - Helper
     private func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        // Always present alerts on the main thread to avoid threading issues
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, self.presentedViewController == nil else { return }
+            
+            let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            self.present(alert, animated: true)
+        }
     }
 }
 
