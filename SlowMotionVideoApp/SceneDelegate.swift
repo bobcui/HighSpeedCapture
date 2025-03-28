@@ -1,5 +1,6 @@
 import UIKit
 
+@available(iOS 13.0, *)
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     var window: UIWindow?
@@ -7,20 +8,34 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
+        // Create window with the window scene
         window = UIWindow(windowScene: windowScene)
+        
+        // Set camera view controller as root
         let cameraViewController = CameraViewController()
-        let navigationController = UINavigationController(rootViewController: cameraViewController)
-        window?.rootViewController = navigationController
+        window?.rootViewController = cameraViewController
+        
+        // Make window visible
         window?.makeKeyAndVisible()
     }
 
-    func sceneDidDisconnect(_ scene: UIScene) {}
+    func sceneDidDisconnect(_ scene: UIScene) {
+        // Called as the scene is being released by the system.
+    }
 
-    func sceneDidBecomeActive(_ scene: UIScene) {}
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        // Called when the scene has moved from an inactive state to an active state.
+    }
 
-    func sceneWillResignActive(_ scene: UIScene) {}
+    func sceneWillResignActive(_ scene: UIScene) {
+        // Called when the scene will move from an active state to an inactive state.
+    }
 
-    func sceneWillEnterForeground(_ scene: UIScene) {}
+    func sceneWillEnterForeground(_ scene: UIScene) {
+        // Called as the scene transitions from the background to the foreground.
+    }
 
-    func sceneDidEnterBackground(_ scene: UIScene) {}
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        // Called as the scene transitions from the foreground to the background.
+    }
 }

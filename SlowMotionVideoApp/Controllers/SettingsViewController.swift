@@ -1,20 +1,16 @@
 import UIKit
 
-protocol SettingsViewControllerDelegate: AnyObject {
-    func didUpdateSettings(_ settings: VideoSettings)
-}
-
 class SettingsViewController: UIViewController {
     
     // MARK: - Properties
-    var videoSettings = VideoSettings.default
-    weak var delegate: SettingsViewControllerDelegate?
+    private var videoSettings: VideoSettings
     
     // MARK: - UI Elements
     private lazy var durationLabel: UILabel = {
         let label = UILabel()
-        label.text = "Clip Duration (seconds)"
+        label.text = "Recording Duration (seconds):"
         label.textColor = .white
+        label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -24,7 +20,7 @@ class SettingsViewController: UIViewController {
         slider.minimumValue = 5
         slider.maximumValue = 30
         slider.value = Float(videoSettings.clipDuration)
-        slider.addTarget(self, action: #selector(durationSliderChanged), for: .valueChanged)
+        slider.addTarget(self, action: #selector(durationSliderChanged(_:)), for: .valueChanged)
         slider.translatesAutoresizingMaskIntoConstraints = false
         return slider
     }()
@@ -33,32 +29,75 @@ class SettingsViewController: UIViewController {
         let label = UILabel()
         label.text = "\(videoSettings.clipDuration)"
         label.textColor = .white
-        label.textAlignment = .right
+        label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
     
-    private lazy var infoLabel: UILabel = {
+    private lazy var playbackSpeedLabel: UILabel = {
         let label = UILabel()
-        label.text = "This app records videos at 120 FPS and automatically plays them back at half speed in a loop."
-        label.textColor = .lightGray
-        label.numberOfLines = 0
+        label.text = "Playback Speed:"
+        label.textColor = .white
+        label.font = UIFont.systemFont(ofSize: 16, weight: .medium)
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
+    }()
+    
+    private lazy var playbackSpeedSegmentedControl: UISegmentedControl = {
+        let items = ["0.25x", "0.5x", "0.75x"]
+        let segmentedControl = UISegmentedControl(items: items)
+        
+        // Set default segment based on current settings
+        if videoSettings.playbackSpeed == 0.25 {
+            segmentedControl.selectedSegmentIndex = 0
+        } else if videoSettings.playbackSpeed == 0.5 {
+            segmentedControl.selectedSegmentIndex = 1
+        } else if videoSettings.playbackSpeed == 0.75 {
+            segmentedControl.selectedSegmentIndex = 2
+        } else {
+            segmentedControl.selectedSegmentIndex = 1 // Default to 0.5x
+        }
+        
+        segmentedControl.addTarget(self, action: #selector(playbackSpeedChanged(_:)), for: .valueChanged)
+        segmentedControl.translatesAutoresizingMaskIntoConstraints = false
+        return segmentedControl
     }()
     
     private lazy var saveButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Save Settings", for: .normal)
-        button.setTitleColor(.white, for: .normal)
+        button.setTitle("Save", for: .normal)
+        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
         button.backgroundColor = .systemBlue
-        button.layer.cornerRadius = 10
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(saveButtonTapped), for: .touchUpInside)
         return button
     }()
     
-    // MARK: - Lifecycle Methods
+    private lazy var cancelButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setTitle("Cancel", for: .normal)
+        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
+        button.backgroundColor = .systemGray
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 12
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(cancelButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    // MARK: - Init
+    init(videoSettings: VideoSettings) {
+        self.videoSettings = videoSettings
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -66,48 +105,84 @@ class SettingsViewController: UIViewController {
     
     // MARK: - Setup
     private func setupUI() {
-        title = "Settings"
-        view.backgroundColor = .black
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.95)
         
+        // Add subviews
         view.addSubview(durationLabel)
         view.addSubview(durationSlider)
         view.addSubview(durationValueLabel)
-        view.addSubview(infoLabel)
+        view.addSubview(playbackSpeedLabel)
+        view.addSubview(playbackSpeedSegmentedControl)
         view.addSubview(saveButton)
+        view.addSubview(cancelButton)
         
+        // Setup constraints
         NSLayoutConstraint.activate([
+            // Duration label
             durationLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 40),
             durationLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             
-            durationValueLabel.topAnchor.constraint(equalTo: durationLabel.topAnchor),
-            durationValueLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            durationValueLabel.leadingAnchor.constraint(equalTo: durationLabel.trailingAnchor, constant: 10),
-            durationValueLabel.widthAnchor.constraint(equalToConstant: 40),
-            
+            // Duration slider
             durationSlider.topAnchor.constraint(equalTo: durationLabel.bottomAnchor, constant: 10),
             durationSlider.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            durationSlider.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            durationSlider.trailingAnchor.constraint(equalTo: durationValueLabel.leadingAnchor, constant: -20),
             
-            infoLabel.topAnchor.constraint(equalTo: durationSlider.bottomAnchor, constant: 40),
-            infoLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            infoLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            // Duration value label
+            durationValueLabel.centerYAnchor.constraint(equalTo: durationSlider.centerYAnchor),
+            durationValueLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            durationValueLabel.widthAnchor.constraint(equalToConstant: 40),
             
-            saveButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
-            saveButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            saveButton.widthAnchor.constraint(equalToConstant: 200),
-            saveButton.heightAnchor.constraint(equalToConstant: 50)
+            // Playback speed label
+            playbackSpeedLabel.topAnchor.constraint(equalTo: durationSlider.bottomAnchor, constant: 30),
+            playbackSpeedLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            
+            // Playback speed segmented control
+            playbackSpeedSegmentedControl.topAnchor.constraint(equalTo: playbackSpeedLabel.bottomAnchor, constant: 10),
+            playbackSpeedSegmentedControl.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            playbackSpeedSegmentedControl.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            
+            // Save button
+            saveButton.bottomAnchor.constraint(equalTo: cancelButton.topAnchor, constant: -10),
+            saveButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            saveButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            saveButton.heightAnchor.constraint(equalToConstant: 50),
+            
+            // Cancel button
+            cancelButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
+            cancelButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            cancelButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            cancelButton.heightAnchor.constraint(equalToConstant: 50)
         ])
     }
     
     // MARK: - Actions
     @objc private func durationSliderChanged(_ sender: UISlider) {
-        let duration = Int(sender.value)
-        durationValueLabel.text = "\(duration)"
-        videoSettings.clipDuration = duration
+        let roundedValue = Int(sender.value)
+        durationValueLabel.text = "\(roundedValue)"
+        videoSettings.clipDuration = roundedValue
+    }
+    
+    @objc private func playbackSpeedChanged(_ sender: UISegmentedControl) {
+        switch sender.selectedSegmentIndex {
+        case 0:
+            videoSettings.playbackSpeed = 0.25
+        case 1:
+            videoSettings.playbackSpeed = 0.5
+        case 2:
+            videoSettings.playbackSpeed = 0.75
+        default:
+            videoSettings.playbackSpeed = 0.5
+        }
     }
     
     @objc private func saveButtonTapped() {
-        delegate?.didUpdateSettings(videoSettings)
-        navigationController?.popViewController(animated: true)
+        // Notify parent that settings were saved
+        // (In a real app, you would use a delegate pattern or a notification to update the parent's settings)
+        dismiss(animated: true, completion: nil)
+    }
+    
+    @objc private func cancelButtonTapped() {
+        // Dismiss without saving
+        dismiss(animated: true, completion: nil)
     }
 }

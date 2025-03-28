@@ -10,13 +10,16 @@ class CameraControlsView: UIView {
     // MARK: - Properties
     weak var delegate: CameraControlsViewDelegate?
     
+    private var isRecording = false
+    
     // MARK: - UI Elements
     private lazy var recordButton: UIButton = {
         let button = UIButton(type: .system)
         button.setTitle("Ready", for: .normal)
-        button.setTitleColor(.white, for: .normal)
+        button.titleLabel?.font = UIFont.boldSystemFont(ofSize: 18)
         button.backgroundColor = .systemRed
-        button.layer.cornerRadius = 30
+        button.setTitleColor(.white, for: .normal)
+        button.layer.cornerRadius = 40
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(recordButtonTapped), for: .touchUpInside)
         return button
@@ -24,13 +27,30 @@ class CameraControlsView: UIView {
     
     private lazy var settingsButton: UIButton = {
         let button = UIButton(type: .system)
-        button.setTitle("Settings", for: .normal)
-        button.setTitleColor(.white, for: .normal)
-        button.backgroundColor = .darkGray
-        button.layer.cornerRadius = 20
+        button.setImage(UIImage(systemName: "gear"), for: .normal)
+        button.tintColor = .white
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(settingsButtonTapped), for: .touchUpInside)
         return button
+    }()
+    
+    private lazy var recordingIndicator: UIView = {
+        let view = UIView()
+        view.backgroundColor = .systemRed
+        view.layer.cornerRadius = 5
+        view.clipsToBounds = true
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private lazy var timeLabel: UILabel = {
+        let label = UILabel()
+        label.text = "00:00"
+        label.textColor = .white
+        label.font = UIFont.monospacedDigitSystemFont(ofSize: 16, weight: .medium)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
     }()
     
     // MARK: - Initialization
@@ -48,19 +68,35 @@ class CameraControlsView: UIView {
     private func setupUI() {
         backgroundColor = .clear
         
+        // Add subviews
         addSubview(recordButton)
         addSubview(settingsButton)
+        addSubview(recordingIndicator)
+        addSubview(timeLabel)
         
+        // Setup constraints
         NSLayoutConstraint.activate([
+            // Record button
             recordButton.centerXAnchor.constraint(equalTo: centerXAnchor),
-            recordButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
-            recordButton.widthAnchor.constraint(equalToConstant: 60),
-            recordButton.heightAnchor.constraint(equalToConstant: 60),
+            recordButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -30),
+            recordButton.widthAnchor.constraint(equalToConstant: 80),
+            recordButton.heightAnchor.constraint(equalToConstant: 80),
             
+            // Settings button
+            settingsButton.topAnchor.constraint(equalTo: topAnchor, constant: 20),
             settingsButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -20),
-            settingsButton.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -20),
-            settingsButton.widthAnchor.constraint(equalToConstant: 80),
-            settingsButton.heightAnchor.constraint(equalToConstant: 40)
+            settingsButton.widthAnchor.constraint(equalToConstant: 44),
+            settingsButton.heightAnchor.constraint(equalToConstant: 44),
+            
+            // Time label
+            timeLabel.topAnchor.constraint(equalTo: topAnchor, constant: 20),
+            timeLabel.centerXAnchor.constraint(equalTo: centerXAnchor),
+            
+            // Recording indicator
+            recordingIndicator.centerYAnchor.constraint(equalTo: timeLabel.centerYAnchor),
+            recordingIndicator.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+            recordingIndicator.widthAnchor.constraint(equalToConstant: 10),
+            recordingIndicator.heightAnchor.constraint(equalToConstant: 10)
         ])
     }
     
@@ -74,8 +110,32 @@ class CameraControlsView: UIView {
     }
     
     // MARK: - Public Methods
-    func updateRecordButtonState(isRecording: Bool) {
-        recordButton.setTitle(isRecording ? "Recording..." : "Ready", for: .normal)
-        recordButton.backgroundColor = isRecording ? .systemRed.withAlphaComponent(0.7) : .systemRed
+    func updateForRecordingState(_ isRecording: Bool) {
+        self.isRecording = isRecording
+        
+        if isRecording {
+            recordButton.setTitle("Stop", for: .normal)
+            recordingIndicator.isHidden = false
+            // Start recording indicator animation
+            UIView.animate(withDuration: 0.8, delay: 0, options: [.repeat, .autoreverse], animations: {
+                self.recordingIndicator.alpha = 0.3
+            })
+        } else {
+            recordButton.setTitle("Ready", for: .normal)
+            recordingIndicator.isHidden = true
+            recordingIndicator.alpha = 1.0
+            recordingIndicator.layer.removeAllAnimations()
+        }
+    }
+    
+    func updateTimeLabel(minutes: Int, seconds: Int) {
+        timeLabel.text = String(format: "%02d:%02d", minutes, seconds)
+    }
+    
+    func showControls(_ show: Bool) {
+        recordButton.isHidden = !show
+        settingsButton.isHidden = !show
+        timeLabel.isHidden = !show
+        recordingIndicator.isHidden = !show || !isRecording
     }
 }

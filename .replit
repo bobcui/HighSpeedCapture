@@ -19,6 +19,10 @@ args = "iOS App Build"
 task = "workflow.run"
 args = "ios_simulator"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Simulator"
+
 [[workflows.workflow]]
 name = "iOS App Build"
 author = "agent"
@@ -47,6 +51,20 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "open -a Simulator.app && xcrun simctl boot \"iPhone 13\" && xcrun simctl install booted SlowMotionVideoApp/ && xcrun simctl launch booted com.example.SlowMotionVideoApp"
+
+[[workflows.workflow]]
+name = "Simulator"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "swift simulator.swift"
 
 [deployment]
 run = ["sh", "-c", "swift run -c release"]

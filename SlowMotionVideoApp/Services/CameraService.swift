@@ -1,216 +1,185 @@
+import Foundation
 import AVFoundation
 import UIKit
 
-class CameraService: NSObject {
+enum CameraError: Error {
+    case captureSessionAlreadyRunning
+    case captureSessionIsMissing
+    case inputsAreInvalid
+    case invalidOperation
+    case noCamerasAvailable
+    case unknown
+}
+
+public class CameraService {
     
     // MARK: - Properties
-    private var captureSession: AVCaptureSession?
-    private var videoOutput: AVCaptureMovieFileOutput?
-    private var videoDevice: AVCaptureDevice?
-    private var currentRecordingURL: URL?
+    var session: AVCaptureSession?
+    var delegate: AVCaptureFileOutputRecordingDelegate?
+    var videoOutput: AVCaptureMovieFileOutput?
     
-    private var recordingTimer: Timer?
-    private var recordingCompletionHandler: ((Bool, URL?) -> Void)?
+    let sessionQueue = DispatchQueue(label: "com.example.sessionQueue")
+    let videoSettings: VideoSettings
+    var recordedClips: [URL] = []
+    var isRecording = false
     
-    // Preview layer for showing camera feed
-    var previewLayer: AVCaptureVideoPreviewLayer?
+    init(videoSettings: VideoSettings = .default) {
+        self.videoSettings = videoSettings
+    }
     
     // MARK: - Camera Setup
-    func prepareCamera(frameRate: Int, completion: @escaping (Bool) -> Void) {
-        // Check authorization status
-        checkPermission { [weak self] granted in
-            guard let self = self, granted else {
-                completion(false)
-                return
-            }
-            
-            // Create capture session
-            let session = AVCaptureSession()
-            session.sessionPreset = .high
-            self.captureSession = session
-            
-            // Find back camera with high frame rate support
-            guard let device = self.findBestCamera(for: frameRate) else {
-                completion(false)
-                return
-            }
-            
-            self.videoDevice = device
-            
-            do {
-                // Configure device for high frame rate
-                try device.lockForConfiguration()
-                
-                if device.activeFormat.isHighPhotoQualitySupported {
-                    device.isHighPhotoQualityEnabled = true
-                }
-                
-                // Find format that supports high frame rate
-                if let formatWithHighFrameRate = CameraService.bestFormat(for: device, frameRate: frameRate) {
-                    device.activeFormat = formatWithHighFrameRate
-                    
-                    // Set frame rate
-                    let ranges = formatWithHighFrameRate.videoSupportedFrameRateRanges
-                    if let frameRateRange = ranges.first(where: { $0.maxFrameRate >= Float64(frameRate) }) {
-                        device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
-                        device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(frameRate))
-                    }
-                }
-                
-                device.unlockForConfiguration()
-                
-                // Add device input to session
-                let deviceInput = try AVCaptureDeviceInput(device: device)
-                
-                if session.canAddInput(deviceInput) {
-                    session.addInput(deviceInput)
-                }
-                
-                // Setup movie file output
-                let movieFileOutput = AVCaptureMovieFileOutput()
-                if session.canAddOutput(movieFileOutput) {
-                    session.addOutput(movieFileOutput)
-                    self.videoOutput = movieFileOutput
-                }
-                
-                // Setup preview layer
-                let previewLayer = AVCaptureVideoPreviewLayer(session: session)
-                previewLayer.videoGravity = .resizeAspectFill
-                self.previewLayer = previewLayer
-                
-                completion(true)
-            } catch {
-                print("Error setting up camera: \(error.localizedDescription)")
-                completion(false)
-            }
+    func checkPermissions() -> Bool {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            return true
+        case .notDetermined:
+            requestPermissions()
+            return false
+        default:
+            return false
         }
     }
     
-    private func findBestCamera(for frameRate: Int) -> AVCaptureDevice? {
-        let discoverySession = AVCaptureDevice.DiscoverySession(
-            deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTripleCamera],
-            mediaType: .video,
-            position: .back
-        )
-        
-        // Find devices that support high frame rates
-        for device in discoverySession.devices {
-            if CameraService.bestFormat(for: device, frameRate: frameRate) != nil {
-                return device
-            }
+    func requestPermissions() {
+        sessionQueue.suspend()
+        AVCaptureDevice.requestAccess(for: .video) { [weak self] granted in
+            guard let self = self else { return }
+            self.sessionQueue.resume()
         }
-        
-        // If no ideal device is found, return the default back camera
-        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back)
     }
     
-    static func bestFormat(for device: AVCaptureDevice, frameRate: Int) -> AVCaptureDevice.Format? {
-        // Find format that supports high frame rate
-        var bestFormat: AVCaptureDevice.Format? = nil
-        var maxDimension: Int32 = 0
+    func setupCamera() throws {
+        let session = AVCaptureSession()
+        self.session = session
         
-        for format in device.formats {
-            let ranges = format.videoSupportedFrameRateRanges
-            
-            // Check if this format supports our target frame rate
-            guard let range = ranges.first(where: { $0.maxFrameRate >= Float64(frameRate) }) else {
-                continue
-            }
-            
-            let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-            let totalPixels = dimensions.width * dimensions.height
-            
-            // We want the highest resolution that supports our frame rate
-            if totalPixels > maxDimension {
-                maxDimension = totalPixels
-                bestFormat = format
-            }
+        session.beginConfiguration()
+        
+        // Set the video quality preset
+        session.sessionPreset = AVCaptureSession.Preset.high
+        
+        // Add video input
+        guard let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) else {
+            throw CameraError.noCamerasAvailable
         }
         
-        return bestFormat
+        do {
+            // Configure device for high frame rate
+            try device.lockForConfiguration()
+            if device.activeFormat.isHighFrameRateSupported(fps: videoSettings.frameRate) {
+                device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: CMTimeScale(videoSettings.frameRate))
+                device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: CMTimeScale(videoSettings.frameRate))
+            }
+            device.unlockForConfiguration()
+            
+            let videoInput = try AVCaptureDeviceInput(device: device)
+            if session.canAddInput(videoInput) {
+                session.addInput(videoInput)
+            } else {
+                throw CameraError.inputsAreInvalid
+            }
+        } catch {
+            throw CameraError.inputsAreInvalid
+        }
+        
+        // Add audio input
+        if let audioDevice = AVCaptureDevice.default(for: .audio),
+           let audioInput = try? AVCaptureDeviceInput(device: audioDevice),
+           session.canAddInput(audioInput) {
+            session.addInput(audioInput)
+        }
+        
+        // Add video output
+        let videoOutput = AVCaptureMovieFileOutput()
+        self.videoOutput = videoOutput
+        
+        if session.canAddOutput(videoOutput) {
+            session.addOutput(videoOutput)
+        } else {
+            throw CameraError.unknown
+        }
+        
+        session.commitConfiguration()
     }
     
-    // MARK: - Session Control
+    // MARK: - Camera Control
     func startSession() {
-        guard let captureSession = captureSession, !captureSession.isRunning else { return }
-        
-        // Start the capture session on a background queue
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.captureSession?.startRunning()
+        sessionQueue.async { [weak self] in
+            guard let self = self, let session = self.session else { return }
+            if !session.isRunning {
+                session.startRunning()
+            }
         }
     }
     
     func stopSession() {
-        guard let captureSession = captureSession, captureSession.isRunning else { return }
-        
-        // Stop the capture session on a background queue
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-            self?.captureSession?.stopRunning()
+        sessionQueue.async { [weak self] in
+            guard let self = self, let session = self.session else { return }
+            if session.isRunning {
+                session.stopRunning()
+            }
         }
     }
     
-    // MARK: - Recording
-    func startRecording(duration: Int, completion: @escaping (Bool, URL?) -> Void) {
-        guard let videoOutput = videoOutput, !videoOutput.isRecording else {
-            completion(false, nil)
+    // MARK: - Recording Methods
+    func startRecording(completion: @escaping (Error?) -> Void) {
+        guard let videoOutput = videoOutput, !isRecording else {
+            completion(CameraError.captureSessionAlreadyRunning)
             return
         }
         
-        // Create unique URL for recorded video
-        let documentsURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-        let timestamp = Date().timeIntervalSince1970
-        let url = documentsURL.appendingPathComponent("video_\(timestamp).mov")
-        currentRecordingURL = url
-        
-        // Store completion handler
-        recordingCompletionHandler = completion
-        
-        // Start recording
-        videoOutput.startRecording(to: url, recordingDelegate: self)
-        
-        // Setup timer to stop recording after specified duration
-        recordingTimer = Timer.scheduledTimer(withTimeInterval: TimeInterval(duration), repeats: false) { [weak self] _ in
-            self?.stopRecording()
+        guard let delegate = delegate else {
+            completion(CameraError.invalidOperation)
+            return
         }
-    }
-    
-    func stopRecording() {
-        guard let videoOutput = videoOutput, videoOutput.isRecording else { return }
         
-        // Invalidate timer if it exists
-        recordingTimer?.invalidate()
-        recordingTimer = nil
+        let outputURL = newRecordingURL()
         
-        // Stop recording
-        videoOutput.stopRecording()
-    }
-    
-    // MARK: - Permissions
-    private func checkPermission(completion: @escaping (Bool) -> Void) {
-        switch AVCaptureDevice.authorizationStatus(for: .video) {
-        case .authorized:
-            completion(true)
-        case .notDetermined:
-            AVCaptureDevice.requestAccess(for: .video) { granted in
-                DispatchQueue.main.async {
-                    completion(granted)
+        sessionQueue.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Set max duration
+            videoOutput.maxRecordedDuration = CMTime(seconds: Double(self.videoSettings.clipDuration), preferredTimescale: 600)
+            
+            // Start recording
+            videoOutput.startRecording(to: outputURL, recordingDelegate: delegate)
+            self.isRecording = true
+            
+            // Schedule stop after duration
+            DispatchQueue.main.asyncAfter(deadline: .now() + Double(self.videoSettings.clipDuration)) {
+                self.stopRecording { error in
+                    completion(error)
                 }
             }
-        default:
-            completion(false)
         }
+    }
+    
+    func stopRecording(completion: @escaping (Error?) -> Void) {
+        guard let videoOutput = videoOutput, isRecording else {
+            completion(CameraError.invalidOperation)
+            return
+        }
+        
+        sessionQueue.async { [weak self] in
+            videoOutput.stopRecording()
+            self?.isRecording = false
+            completion(nil)
+        }
+    }
+    
+    private func newRecordingURL() -> URL {
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "\(Date().timeIntervalSince1970).mov"
+        return tempDir.appendingPathComponent(fileName)
     }
 }
 
-// MARK: - AVCaptureFileOutputRecordingDelegate
-extension CameraService: AVCaptureFileOutputRecordingDelegate {
-    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
-        let success = error == nil
-        
-        // Call completion handler if it exists
-        if let completionHandler = recordingCompletionHandler {
-            completionHandler(success, outputFileURL)
-            recordingCompletionHandler = nil
+// Extension for frame rate support
+extension AVCaptureDevice.Format {
+    func isHighFrameRateSupported(fps: Int) -> Bool {
+        let ranges = videoSupportedFrameRateRanges
+        for range in ranges where range.maxFrameRate >= Float64(fps) {
+            return true
         }
+        return false
     }
 }
