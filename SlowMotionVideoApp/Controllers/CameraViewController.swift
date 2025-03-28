@@ -17,6 +17,7 @@ class CameraViewController: UIViewController {
     private var recordingTimeSeconds: Int = 0
     private var isShowingRecordingUI = true
     private var isSpeechRecognitionActive = false
+    private var hasRecordedVideo: Bool = false
     
     // MARK: - UI Elements
     private lazy var previewView: UIView = {
@@ -140,6 +141,16 @@ class CameraViewController: UIViewController {
         return label
     }()
     
+    private lazy var cloudStorageButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "icloud.and.arrow.up"), for: .normal)
+        button.tintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(cloudStorageButtonTapped), for: .touchUpInside)
+        button.isEnabled = false
+        return button
+    }()
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -181,6 +192,7 @@ class CameraViewController: UIViewController {
         view.addSubview(recordingIndicator)
         view.addSubview(playbackControlButton)
         view.addSubview(voiceStatusLabel)
+        view.addSubview(cloudStorageButton)
         
         // Setup speed control UI
         setupSpeedControlUI()
@@ -235,7 +247,13 @@ class CameraViewController: UIViewController {
             playbackControlButton.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             playbackControlButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             playbackControlButton.widthAnchor.constraint(equalToConstant: 60),
-            playbackControlButton.heightAnchor.constraint(equalToConstant: 60)
+            playbackControlButton.heightAnchor.constraint(equalToConstant: 60),
+            
+            // Cloud storage button
+            cloudStorageButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
+            cloudStorageButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
+            cloudStorageButton.widthAnchor.constraint(equalToConstant: 44),
+            cloudStorageButton.heightAnchor.constraint(equalToConstant: 44)
         ])
     }
     
@@ -424,6 +442,11 @@ class CameraViewController: UIViewController {
         recordButton.isHidden = true
         isShowingRecordingUI = false
         
+        // Make sure cloud storage button is visible if we have a recording
+        if hasRecordedVideo {
+            cloudStorageButton.isEnabled = true
+        }
+        
         do {
             // Setup player and set delegate
             videoPlayerService.delegate = self
@@ -474,6 +497,10 @@ class CameraViewController: UIViewController {
         playbackControlButton.isHidden = true
         speedControlView.isHidden = true
         isShowingRecordingUI = true
+        
+        // Update cloud storage button appearance based on recording status
+        cloudStorageButton.isEnabled = hasRecordedVideo
+        cloudStorageButton.tintColor = hasRecordedVideo ? .white : .lightGray
     }
     
     // MARK: - Recording Timer
@@ -507,6 +534,32 @@ class CameraViewController: UIViewController {
         present(settingsVC, animated: true)
     }
     
+    // MARK: - Cloud Storage
+    /**
+     * Handles the cloud storage button tap event
+     *
+     * This method:
+     * 1. Verifies there's a recorded video available
+     * 2. Creates and configures the CloudStorageViewController
+     * 3. Presents the controller for user to upload/share video
+     *
+     * The cloud storage button is only enabled after a video has been recorded.
+     * After successful sharing, the button tint color changes to blue to indicate
+     * the video has been shared.
+     */
+    @objc private func cloudStorageButtonTapped() {
+        guard let videoURL = currentRecordingURL else {
+            showAlert(title: "Cloud Storage", message: "No recorded video available. Please record a video first.")
+            return
+        }
+        
+        // Present the cloud storage view controller
+        let cloudStorageVC = CloudStorageViewController(videoURL: videoURL)
+        cloudStorageVC.delegate = self
+        cloudStorageVC.modalPresentationStyle = .fullScreen
+        present(cloudStorageVC, animated: true)
+    }
+    
     // MARK: - Helper
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
@@ -526,10 +579,15 @@ extension CameraViewController: AVCaptureFileOutputRecordingDelegate {
         // Add the recorded clip to our list
         cameraService.recordedClips.append(outputFileURL)
         currentRecordingURL = outputFileURL
+        hasRecordedVideo = true
         
         // Stop recording UI and show playback
         DispatchQueue.main.async {
             self.stopRecording()
+            
+            // Enable cloud storage button
+            self.cloudStorageButton.isEnabled = true
+            self.cloudStorageButton.tintColor = .white
         }
     }
 }
@@ -599,5 +657,40 @@ extension CameraViewController: VoiceTrainingViewControllerDelegate {
             alert.addAction(UIAlertAction(title: "OK", style: .default))
             present(alert, animated: true)
         }
+    }
+}
+
+// MARK: - CloudStorageViewControllerDelegate
+/**
+ * Implementation of CloudStorageViewControllerDelegate methods
+ *
+ * These methods handle the communication from CloudStorageViewController:
+ * - When a video is successfully shared, updates the UI and shows confirmation
+ * - When user cancels the cloud operations, dismisses the controller
+ */
+extension CameraViewController: CloudStorageViewControllerDelegate {
+    func cloudStorageViewController(_ controller: CloudStorageViewController, didShareVideo url: URL) {
+        // Handle the shared video URL
+        print("Video shared with URL: \(url)")
+        
+        // Update cloud storage button to indicate video is shared
+        cloudStorageButton.tintColor = .systemBlue
+        
+        // Dismiss the cloud storage view controller
+        controller.dismiss(animated: true) { [weak self] in
+            // Show a success message
+            let alert = UIAlertController(
+                title: "Video Shared",
+                message: "Your video has been shared successfully! URL: \(url)",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            self?.present(alert, animated: true)
+        }
+    }
+    
+    func cloudStorageViewControllerDidCancel(_ controller: CloudStorageViewController) {
+        // Simply dismiss the cloud storage view controller
+        controller.dismiss(animated: true)
     }
 }

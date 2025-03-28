@@ -85,11 +85,87 @@ class SpeechRecognitionSimulator {
 }
 
 // Emulate the app functionality
+// Cloud Storage Provider Enum
+enum CloudStorageProvider: String, CaseIterable {
+    case iCloud = "iCloud"
+    case dropbox = "Dropbox"
+    case googleDrive = "Google Drive"
+    
+    var displayName: String {
+        return rawValue
+    }
+}
+
+// Cloud Storage Service
+class CloudStorageService {
+    private var currentProvider: CloudStorageProvider = .iCloud
+    private var isAuthenticated: [CloudStorageProvider: Bool] = [
+        .iCloud: false,
+        .dropbox: false,
+        .googleDrive: false
+    ]
+    
+    func authenticate(provider: CloudStorageProvider, completion: () -> Void) {
+        print("Authenticating with \(provider.displayName)...")
+        Thread.sleep(forTimeInterval: 1.0)  // Simulate network delay
+        isAuthenticated[provider] = true
+        print("Successfully authenticated with \(provider.displayName)")
+        completion()
+    }
+    
+    func isAuthenticatedWith(provider: CloudStorageProvider) -> Bool {
+        return isAuthenticated[provider] ?? false
+    }
+    
+    func uploadVideo(provider: CloudStorageProvider, completion: () -> Void) {
+        if !isAuthenticatedWith(provider: provider) {
+            print("Error: Not authenticated with \(provider.displayName)")
+            return
+        }
+        
+        print("Uploading video to \(provider.displayName)...")
+        
+        // Simulate upload progress
+        for i in 1...5 {
+            Thread.sleep(forTimeInterval: 0.5)
+            print("Upload progress: \(i * 20)%")
+        }
+        
+        print("Video successfully uploaded to \(provider.displayName)")
+        completion()
+    }
+    
+    func shareVideo(provider: CloudStorageProvider, isPublic: Bool, allowComments: Bool, allowDownloads: Bool) -> String {
+        let uniqueID = UUID().uuidString.prefix(8)
+        var sharingURL = "https://share.\(provider.rawValue.lowercased()).example.com/\(uniqueID)"
+        
+        // Add query parameters based on options
+        var queryParams: [String] = []
+        if isPublic {
+            queryParams.append("public=true")
+        }
+        if allowComments {
+            queryParams.append("comments=true")
+        }
+        if allowDownloads {
+            queryParams.append("downloads=true")
+        }
+        
+        if !queryParams.isEmpty {
+            sharingURL += "?" + queryParams.joined(separator: "&")
+        }
+        
+        return sharingURL
+    }
+}
+
 class SimulatedApp {
-    let videoSettings = VideoSettings.default
+    var videoSettings = VideoSettings.default
     let speechRecognition = SpeechRecognitionSimulator()
+    let cloudStorageService = CloudStorageService()
     var isVoiceControlEnabled = false
     var isInPlaybackMode = false
+    var hasRecordedVideo = false
     
     func run() {
         print("Current settings: \(videoSettings.clipDuration) seconds clip duration")
@@ -97,6 +173,7 @@ class SimulatedApp {
         print("Voice control: \(isVoiceControlEnabled ? "ON" : "OFF")")
         print("Commands: 'ready' to start recording, 'settings' to change duration")
         print("          'speed' to change playback speed, 'voice' to toggle voice control") 
+        print("          'train' to practice voice commands, 'cloud' to upload/share")
         print("          'exit' to quit")
         
         // Set up voice command handler
@@ -136,12 +213,16 @@ class SimulatedApp {
                     } else {
                         print("Speed control only available during playback.")
                     }
+                case "train":
+                    startVoiceTraining()
+                case "cloud":
+                    openCloudOptions()
                 case "exit":
                     shouldExit = true
                     print("Exiting application...")
                 default:
                     if !isVoiceControlEnabled || input != "ready" {
-                        print("Unknown command. Try 'ready', 'settings', 'speed', 'voice', or 'exit'.")
+                        print("Unknown command. Try 'ready', 'settings', 'speed', 'voice', 'train', 'cloud', or 'exit'.")
                         if isInPlaybackMode {
                             print("During playback, you can also use 'faster/+' or 'slower/-' to change speed.")
                         }
@@ -172,9 +253,13 @@ class SimulatedApp {
             Thread.sleep(forTimeInterval: 0.2)  // Speed up the simulation
         }
         
+        // Set flag that we have a recorded video
+        hasRecordedVideo = true
+        
         print("Recording complete!")
         print("Now playing back at \(videoSettings.playbackSpeed.displayName) in a loop...")
         simulatePlayback()
+        print("Cloud storage available with 'cloud' command")
         print("(Enter 'ready' to start a new recording)")
     }
     
@@ -261,6 +346,185 @@ class SimulatedApp {
         // Set the new speed
         videoSettings.playbackSpeed = previousSpeed
         print("Decreased to \(previousSpeed.displayName)")
+    }
+    
+    // MARK: - Cloud Storage
+    private func openCloudOptions() {
+        if !hasRecordedVideo {
+            print("You need to record a video first before using cloud storage.")
+            return
+        }
+        
+        print("=== Cloud Storage & Sharing ===")
+        print("Choose a cloud provider:")
+        
+        // Display provider options
+        for (index, provider) in CloudStorageProvider.allCases.enumerated() {
+            let authStatus = cloudStorageService.isAuthenticatedWith(provider: provider) ? "✓" : "✗"
+            print("\(index + 1). \(provider.displayName) \(authStatus)")
+        }
+        
+        print("\nType a provider number, or 'back' to return:")
+        
+        if let input = readLine()?.lowercased() {
+            if input == "back" {
+                return
+            }
+            
+            if let providerIndex = Int(input), 
+               providerIndex >= 1 && providerIndex <= CloudStorageProvider.allCases.count {
+                
+                let selectedProvider = CloudStorageProvider.allCases[providerIndex - 1]
+                handleCloudProvider(selectedProvider)
+            } else {
+                print("Invalid selection. Please enter a number between 1 and \(CloudStorageProvider.allCases.count).")
+            }
+        }
+    }
+    
+    private func handleCloudProvider(_ provider: CloudStorageProvider) {
+        print("\nSelected provider: \(provider.displayName)")
+        
+        // Check if authenticated
+        if !cloudStorageService.isAuthenticatedWith(provider: provider) {
+            print("You need to authenticate with \(provider.displayName) first.")
+            print("Proceed with authentication? (yes/no)")
+            
+            if let input = readLine()?.lowercased(), input == "yes" {
+                cloudStorageService.authenticate(provider: provider) {
+                    self.showCloudProviderOptions(provider)
+                }
+            }
+        } else {
+            showCloudProviderOptions(provider)
+        }
+    }
+    
+    private func showCloudProviderOptions(_ provider: CloudStorageProvider) {
+        print("\n\(provider.displayName) Options:")
+        print("1. Upload Video")
+        print("2. Share Video")
+        print("3. Back to Provider Selection")
+        
+        if let input = readLine(), let option = Int(input) {
+            switch option {
+            case 1:
+                cloudStorageService.uploadVideo(provider: provider) {
+                    self.configureSharing(provider)
+                }
+            case 2:
+                if cloudStorageService.isAuthenticatedWith(provider: provider) {
+                    configureSharing(provider)
+                } else {
+                    print("You need to upload a video first.")
+                    cloudStorageService.authenticate(provider: provider) {
+                        self.cloudStorageService.uploadVideo(provider: provider) {
+                            self.configureSharing(provider)
+                        }
+                    }
+                }
+            case 3:
+                openCloudOptions()
+            default:
+                print("Invalid option. Please try again.")
+            }
+        }
+    }
+    
+    private func configureSharing(_ provider: CloudStorageProvider) {
+        var isPublic = false
+        var allowComments = true
+        var allowDownloads = false
+        
+        print("\nConfigure Sharing Options:")
+        
+        print("Make video public? (yes/no) [default: no]")
+        if let input = readLine()?.lowercased() {
+            isPublic = input == "yes"
+        }
+        
+        print("Allow comments? (yes/no) [default: yes]")
+        if let input = readLine()?.lowercased() {
+            allowComments = input != "no"
+        }
+        
+        print("Allow downloads? (yes/no) [default: no]")
+        if let input = readLine()?.lowercased() {
+            allowDownloads = input == "yes"
+        }
+        
+        // Generate sharing URL
+        let sharingURL = cloudStorageService.shareVideo(
+            provider: provider,
+            isPublic: isPublic,
+            allowComments: allowComments,
+            allowDownloads: allowDownloads
+        )
+        
+        print("\nYour video has been shared!")
+        print("Sharing URL: \(sharingURL)")
+        print("\nPress Enter to continue...")
+        _ = readLine()
+    }
+    
+    // MARK: - Voice Training
+    private func startVoiceTraining() {
+        print("=== Voice Command Trainer ===")
+        print("This trainer will help you improve voice command recognition accuracy")
+        print("Let's practice saying the 'ready' command")
+        
+        var trainingSession = true
+        var attemptCount = 0
+        var successCount = 0
+        
+        // Constants for the training session
+        let requiredSuccesses = 3
+        let maxAttempts = 10
+        
+        print("\nTraining Tips:")
+        print("- Speak clearly and at a moderate pace")
+        print("- Keep consistent volume and tone")
+        print("- Try different variations if recognition fails")
+        print("- Practice in the same environment you'll use the app")
+        
+        while trainingSession && attemptCount < maxAttempts {
+            print("\nAttempt \(attemptCount + 1): Say 'ready' and press Enter")
+            
+            if let input = readLine()?.lowercased().trimmingCharacters(in: .whitespacesAndNewlines) {
+                attemptCount += 1
+                
+                // Evaluate attempt
+                if input == "ready" {
+                    successCount += 1
+                    print("✓ Success! Good pronunciation.")
+                    
+                    // Give progress feedback
+                    if successCount >= requiredSuccesses {
+                        print("\nTraining complete! You've successfully trained the voice recognition.")
+                        print("Success rate: \(Float(successCount) / Float(attemptCount) * 100)%")
+                        
+                        // Update voice control settings
+                        isVoiceControlEnabled = true
+                        _ = speechRecognition.toggleActive()
+                        
+                        print("\nVoice control has been enabled based on your training.")
+                        trainingSession = false
+                    } else {
+                        print("Progress: \(successCount)/\(requiredSuccesses) successful attempts")
+                    }
+                } else {
+                    print("✗ Not recognized as 'ready'. Try again with clearer pronunciation.")
+                }
+                
+                // Check if max attempts reached
+                if attemptCount >= maxAttempts && successCount < requiredSuccesses {
+                    print("\nTraining session ended. You've reached the maximum number of attempts.")
+                    print("Success rate: \(Float(successCount) / Float(attemptCount) * 100)%")
+                    print("You can try training again later.")
+                    trainingSession = false
+                }
+            }
+        }
     }
 }
 

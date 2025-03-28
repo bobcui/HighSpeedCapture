@@ -13,15 +13,43 @@ author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
+args = "CLI Simulator"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Swift Build"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
 args = "iOS App Build"
 
-[[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "Simulator"
+[[workflows.workflow]]
+name = "CLI Simulator"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
 
 [[workflows.workflow.tasks]]
-task = "workflow.run"
-args = "CLI Simulator"
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "swift SlowMotionSimulator/main.swift"
+
+[[workflows.workflow]]
+name = "Swift Build"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "swift build"
 
 [[workflows.workflow]]
 name = "iOS App Build"
@@ -36,34 +64,6 @@ task = "packager.installForAll"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "swift build -c release"
-
-[[workflows.workflow]]
-name = "Simulator"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "swift simulator.swift"
-
-[[workflows.workflow]]
-name = "CLI Simulator"
-author = "agent"
-
-[workflows.workflow.metadata]
-agentRequireRestartOnSave = false
-
-[[workflows.workflow.tasks]]
-task = "packager.installForAll"
-
-[[workflows.workflow.tasks]]
-task = "shell.exec"
-args = "swift simulator.swift"
 
 [deployment]
 run = ["sh", "-c", "swift build -c release"]

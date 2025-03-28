@@ -1,22 +1,12 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.3
 import PackageDescription
 
 let package = Package(
     name: "SlowMotionVideoApp",
-    platforms: [
-        .macOS(.v12)
-    ],
-    products: [
-        .executable(
-            name: "SlowMotionSimulator",
-            targets: ["SlowMotionSimulatorTarget"])
-    ],
-    dependencies: [
-        
-    ],
+    dependencies: [],
     targets: [
-        .executableTarget(
-            name: "SlowMotionSimulatorTarget",
+        .target(
+            name: "SlowMotionSimulator",
             dependencies: [],
             path: "SlowMotionSimulator")
     ]
