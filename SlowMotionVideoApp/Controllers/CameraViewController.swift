@@ -334,6 +334,14 @@ class CameraViewController: UIViewController {
         toggleSpeechRecognition()
     }
     
+    @objc private func voiceTrainingButtonTapped() {
+        // Present the voice training view controller
+        let trainingVC = VoiceTrainingViewController()
+        trainingVC.delegate = self
+        trainingVC.modalPresentationStyle = .fullScreen
+        present(trainingVC, animated: true)
+    }
+    
     private func toggleSpeechRecognition() {
         if isSpeechRecognitionActive {
             // Turn off speech recognition
@@ -563,6 +571,33 @@ extension CameraViewController: SpeechRecognitionDelegate {
                 // Start recording
                 self.startRecording()
             }
+        }
+    }
+}
+
+// MARK: - VoiceTrainingViewControllerDelegate
+extension CameraViewController: VoiceTrainingViewControllerDelegate {
+    func voiceTrainingDidComplete(with confidence: Float) {
+        // Update the speech recognition service with the new voice profile
+        speechRecognitionService.updateVoiceProfile(for: "ready", with: confidence)
+        
+        // Give visual feedback that training was successful
+        if confidence > 0.6 {
+            voiceTrainingButton.tintColor = .systemGreen
+            
+            // Show a success message
+            let message = String(format: "Voice training completed successfully with %.0f%% confidence", confidence * 100)
+            let alert = UIAlertController(title: "Training Complete", message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
+        } else if confidence > 0.0 {
+            voiceTrainingButton.tintColor = .systemYellow
+            
+            // Show a partial success message
+            let message = "Voice training completed with moderate success. Additional training is recommended."
+            let alert = UIAlertController(title: "Training Partial Success", message: message, preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default))
+            present(alert, animated: true)
         }
     }
 }
