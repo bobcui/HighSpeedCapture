@@ -1,11 +1,13 @@
 import UIKit
 import AVFoundation
+import Speech
 
 class CameraViewController: UIViewController {
     
     // MARK: - Properties
     private let cameraService = CameraService()
     private let videoPlayerService = VideoPlayerService()
+    private let speechRecognitionService = SpeechRecognitionService()
     
     private var previewLayer: AVCaptureVideoPreviewLayer?
     private var playerLayer: AVPlayerLayer?
@@ -14,6 +16,7 @@ class CameraViewController: UIViewController {
     private var recordingTimer: Timer?
     private var recordingTimeSeconds: Int = 0
     private var isShowingRecordingUI = true
+    private var isSpeechRecognitionActive = false
     
     // MARK: - UI Elements
     private lazy var previewView: UIView = {
@@ -41,6 +44,15 @@ class CameraViewController: UIViewController {
         button.tintColor = .white
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(settingsButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var voiceControlButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "mic"), for: .normal)
+        button.tintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(voiceControlButtonTapped), for: .touchUpInside)
         return button
     }()
     
@@ -73,11 +85,21 @@ class CameraViewController: UIViewController {
         return button
     }()
     
+    private lazy var voiceStatusLabel: UILabel = {
+        let label = UILabel()
+        label.text = "Voice: Off"
+        label.textColor = .white
+        label.font = UIFont.systemFont(ofSize: 14)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
         setupCamera()
+        setupSpeechRecognition()
     }
     
     override func viewDidLayoutSubviews() {
@@ -94,6 +116,9 @@ class CameraViewController: UIViewController {
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
         cameraService.stopSession()
+        if isSpeechRecognitionActive {
+            speechRecognitionService.stopListening()
+        }
     }
     
     // MARK: - Setup
@@ -104,9 +129,11 @@ class CameraViewController: UIViewController {
         view.addSubview(previewView)
         view.addSubview(recordButton)
         view.addSubview(settingsButton)
+        view.addSubview(voiceControlButton)
         view.addSubview(timeLabel)
         view.addSubview(recordingIndicator)
         view.addSubview(playbackControlButton)
+        view.addSubview(voiceStatusLabel)
         
         // Setup constraints
         NSLayoutConstraint.activate([
@@ -127,6 +154,16 @@ class CameraViewController: UIViewController {
             settingsButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
             settingsButton.widthAnchor.constraint(equalToConstant: 44),
             settingsButton.heightAnchor.constraint(equalToConstant: 44),
+            
+            // Voice control button
+            voiceControlButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            voiceControlButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            voiceControlButton.widthAnchor.constraint(equalToConstant: 44),
+            voiceControlButton.heightAnchor.constraint(equalToConstant: 44),
+            
+            // Voice status label
+            voiceStatusLabel.topAnchor.constraint(equalTo: voiceControlButton.bottomAnchor, constant: 5),
+            voiceStatusLabel.centerXAnchor.constraint(equalTo: voiceControlButton.centerXAnchor),
             
             // Time label
             timeLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
@@ -158,6 +195,20 @@ class CameraViewController: UIViewController {
         cameraService.delegate = self
     }
     
+    private func setupSpeechRecognition() {
+        // Set up speech recognition delegate
+        speechRecognitionService.delegate = self
+        
+        // Request authorization
+        speechRecognitionService.requestAuthorization { [weak self] authorized in
+            guard let self = self else { return }
+            
+            if !authorized {
+                self.showAlert(title: "Speech Recognition", message: "Speech recognition permission is required for voice commands. Please enable it in Settings.")
+            }
+        }
+    }
+    
     private func configureCamera() {
         do {
             try cameraService.setupCamera()
@@ -187,6 +238,30 @@ class CameraViewController: UIViewController {
             stopRecording()
         } else {
             startRecording()
+        }
+    }
+    
+    @objc private func voiceControlButtonTapped() {
+        toggleSpeechRecognition()
+    }
+    
+    private func toggleSpeechRecognition() {
+        if isSpeechRecognitionActive {
+            // Turn off speech recognition
+            speechRecognitionService.stopListening()
+            isSpeechRecognitionActive = false
+            voiceControlButton.tintColor = .white
+            voiceStatusLabel.text = "Voice: Off"
+        } else {
+            // Turn on speech recognition
+            do {
+                try speechRecognitionService.startListening()
+                isSpeechRecognitionActive = true
+                voiceControlButton.tintColor = .systemBlue
+                voiceStatusLabel.text = "Voice: On"
+            } catch {
+                showAlert(title: "Speech Recognition Error", message: error.localizedDescription)
+            }
         }
     }
     
@@ -344,6 +419,30 @@ extension CameraViewController: AVCaptureFileOutputRecordingDelegate {
         // Stop recording UI and show playback
         DispatchQueue.main.async {
             self.stopRecording()
+        }
+    }
+}
+
+// MARK: - SpeechRecognitionDelegate
+extension CameraViewController: SpeechRecognitionDelegate {
+    func speechRecognitionDidDetectCommand(_ command: String) {
+        print("Voice command detected: \(command)")
+        
+        // Handle "ready" command
+        if command.lowercased() == "ready" && !cameraService.isRecording {
+            DispatchQueue.main.async {
+                // Visual feedback that voice command was received
+                UIView.animate(withDuration: 0.3, animations: {
+                    self.recordButton.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
+                }) { _ in
+                    UIView.animate(withDuration: 0.3) {
+                        self.recordButton.transform = .identity
+                    }
+                }
+                
+                // Start recording
+                self.startRecording()
+            }
         }
     }
 }

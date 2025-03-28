@@ -21,36 +21,84 @@ print("until receiving the record instruction again.")
 print("")
 print("App Features:")
 print("1. Record high frame rate (120FPS) video clips")
-print("2. Configurable clip duration (5-30 seconds)")
-print("3. Automatic playback at half speed for slow motion effect")
-print("4. Continuous loop playback until new recording is started")
+print("2. Voice activation with the 'ready' command")
+print("3. Configurable clip duration (5-30 seconds)")
+print("4. Automatic playback at half speed for slow motion effect")
+print("5. Continuous loop playback until new recording is started")
 print("")
 print("To run this app on an actual iOS device, build and install using Xcode.")
 print("")
 
+// Simulate speech recognition service
+class SpeechRecognitionSimulator {
+    var isActive = false
+    var onCommand: ((String) -> Void)?
+    
+    func toggleActive() -> Bool {
+        isActive = !isActive
+        return isActive
+    }
+    
+    func processInput(_ input: String) {
+        if isActive && input.lowercased() == "ready" {
+            print("Voice command detected: 'ready'")
+            onCommand?("ready")
+        }
+    }
+}
+
 // Emulate the app functionality
 class SimulatedApp {
     var videoSettings = VideoSettings.default
+    let speechRecognition = SpeechRecognitionSimulator()
+    var isVoiceControlEnabled = false
     
     func run() {
         print("Current settings: \(videoSettings.clipDuration) seconds clip duration")
-        print("Enter 'ready' to start recording, 'settings' to change duration, or 'exit' to quit:")
+        print("Voice control: \(isVoiceControlEnabled ? "ON" : "OFF")")
+        print("Commands: 'ready' to start recording, 'settings' to change duration")
+        print("          'voice' to toggle voice control, 'exit' to quit")
+        
+        // Set up voice command handler
+        speechRecognition.onCommand = { [weak self] command in
+            if command == "ready" {
+                self?.simulateRecording()
+            }
+        }
         
         var shouldExit = false
         while !shouldExit {
             if let input = readLine()?.lowercased() {
+                // Process voice commands if enabled
+                if isVoiceControlEnabled {
+                    speechRecognition.processInput(input)
+                }
+                
+                // Process direct commands
                 switch input {
                 case "ready":
                     simulateRecording()
                 case "settings":
                     changeSettings()
+                case "voice":
+                    toggleVoiceControl()
                 case "exit":
                     shouldExit = true
                     print("Exiting application...")
                 default:
-                    print("Unknown command. Try 'ready', 'settings', or 'exit'.")
+                    if !isVoiceControlEnabled || input != "ready" {
+                        print("Unknown command. Try 'ready', 'settings', 'voice', or 'exit'.")
+                    }
                 }
             }
+        }
+    }
+    
+    private func toggleVoiceControl() {
+        isVoiceControlEnabled = speechRecognition.toggleActive()
+        print("Voice control is now \(isVoiceControlEnabled ? "ON" : "OFF")")
+        if isVoiceControlEnabled {
+            print("Say 'ready' to start recording (voice commands will be processed automatically)")
         }
     }
     
