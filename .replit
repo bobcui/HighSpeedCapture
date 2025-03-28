@@ -1,0 +1,52 @@
+modules = ["swift"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "iOS App Build"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "ios_simulator"
+
+[[workflows.workflow]]
+name = "iOS App Build"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "swift run -c release"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "ios_simulator"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "packager.installForAll"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "open -a Simulator.app && xcrun simctl boot \"iPhone 13\" && xcrun simctl install booted SlowMotionVideoApp/ && xcrun simctl launch booted com.example.SlowMotionVideoApp"
+
+[deployment]
+run = ["sh", "-c", "swift run -c release"]
