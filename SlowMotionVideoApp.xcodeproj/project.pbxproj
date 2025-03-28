@@ -10,12 +10,16 @@
 		4A5C6F1A2B5CBDD0006C7BF7 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F192B5CBDD0006C7BF7 /* AppDelegate.swift */; };
 		4A5C6F1C2B5CBDD0006C7BF7 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F1B2B5CBDD0006C7BF7 /* SceneDelegate.swift */; };
 		4A5C6F242B5CBDD1006C7BF7 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 4A5C6F222B5CBDD1006C7BF7 /* LaunchScreen.storyboard */; };
-		4A5C6F2C2B5CBE43006C7BF7 /* CameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F2B2B5CBE43006C7BF7 /* CameraViewController.swift */; };
-		4A5C6F2E2B5CBE65006C7BF7 /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F2D2B5CBE65006C7BF7 /* SettingsViewController.swift */; };
-		4A5C6F302B5CBE78006C7BF7 /* VideoSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F2F2B5CBE78006C7BF7 /* VideoSettings.swift */; };
-		4A5C6F322B5CBE8D006C7BF7 /* CameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F312B5CBE8D006C7BF7 /* CameraService.swift */; };
-		4A5C6F342B5CBEA2006C7BF7 /* VideoPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F332B5CBEA2006C7BF7 /* VideoPlayerService.swift */; };
-		4A5C6F362B5CBEB7006C7BF7 /* CameraControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F352B5CBEB7006C7BF7 /* CameraControlsView.swift */; };
+		4A5C6F2C2B5CBE43006C7BF7 /* Controllers/CameraViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F2B2B5CBE43006C7BF7 /* Controllers/CameraViewController.swift */; };
+		4A5C6F2E2B5CBE65006C7BF7 /* Controllers/SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F2D2B5CBE65006C7BF7 /* Controllers/SettingsViewController.swift */; };
+		4A5C6F302B5CBE78006C7BF7 /* Models/VideoSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F2F2B5CBE78006C7BF7 /* Models/VideoSettings.swift */; };
+		4A5C6F322B5CBE8D006C7BF7 /* Services/CameraService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F312B5CBE8D006C7BF7 /* Services/CameraService.swift */; };
+		4A5C6F342B5CBEA2006C7BF7 /* Services/VideoPlayerService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F332B5CBEA2006C7BF7 /* Services/VideoPlayerService.swift */; };
+		4A5C6F362B5CBEB7006C7BF7 /* Views/CameraControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A5C6F352B5CBEB7006C7BF7 /* Views/CameraControlsView.swift */; };
+		C4D34C942D9694DA00A94B54 /* CloudStorageViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D34C922D9694DA00A94B54 /* CloudStorageViewController.swift */; };
+		C4D34C952D9694DA00A94B54 /* VoiceTrainingViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D34C932D9694DA00A94B54 /* VoiceTrainingViewController.swift */; };
+		C4D34C972D96950000A94B54 /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D34C962D96950000A94B54 /* SpeechRecognitionService.swift */; };
+		C4D34C992D96952700A94B54 /* CloudStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C4D34C982D96952700A94B54 /* CloudStorageService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -24,12 +28,16 @@
 		4A5C6F1B2B5CBDD0006C7BF7 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		4A5C6F232B5CBDD1006C7BF7 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		4A5C6F252B5CBDD1006C7BF7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		4A5C6F2B2B5CBE43006C7BF7 /* CameraViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controllers/CameraViewController.swift; sourceTree = "<group>"; };
-		4A5C6F2D2B5CBE65006C7BF7 /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controllers/SettingsViewController.swift; sourceTree = "<group>"; };
-		4A5C6F2F2B5CBE78006C7BF7 /* VideoSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/VideoSettings.swift; sourceTree = "<group>"; };
-		4A5C6F312B5CBE8D006C7BF7 /* CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CameraService.swift; sourceTree = "<group>"; };
-		4A5C6F332B5CBEA2006C7BF7 /* VideoPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/VideoPlayerService.swift; sourceTree = "<group>"; };
-		4A5C6F352B5CBEB7006C7BF7 /* CameraControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/CameraControlsView.swift; sourceTree = "<group>"; };
+		4A5C6F2B2B5CBE43006C7BF7 /* Controllers/CameraViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controllers/CameraViewController.swift; sourceTree = "<group>"; };
+		4A5C6F2D2B5CBE65006C7BF7 /* Controllers/SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Controllers/SettingsViewController.swift; sourceTree = "<group>"; };
+		4A5C6F2F2B5CBE78006C7BF7 /* Models/VideoSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models/VideoSettings.swift; sourceTree = "<group>"; };
+		4A5C6F312B5CBE8D006C7BF7 /* Services/CameraService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/CameraService.swift; sourceTree = "<group>"; };
+		4A5C6F332B5CBEA2006C7BF7 /* Services/VideoPlayerService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Services/VideoPlayerService.swift; sourceTree = "<group>"; };
+		4A5C6F352B5CBEB7006C7BF7 /* Views/CameraControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Views/CameraControlsView.swift; sourceTree = "<group>"; };
+		C4D34C922D9694DA00A94B54 /* CloudStorageViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CloudStorageViewController.swift; path = Controllers/CloudStorageViewController.swift; sourceTree = "<group>"; };
+		C4D34C932D9694DA00A94B54 /* VoiceTrainingViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = VoiceTrainingViewController.swift; path = Controllers/VoiceTrainingViewController.swift; sourceTree = "<group>"; };
+		C4D34C962D96950000A94B54 /* SpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = SpeechRecognitionService.swift; path = Services/SpeechRecognitionService.swift; sourceTree = "<group>"; };
+		C4D34C982D96952700A94B54 /* CloudStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = CloudStorageService.swift; path = Services/CloudStorageService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -62,14 +70,18 @@
 		4A5C6F182B5CBDD0006C7BF7 /* SlowMotionVideoApp */ = {
 			isa = PBXGroup;
 			children = (
+				C4D34C982D96952700A94B54 /* CloudStorageService.swift */,
+				C4D34C962D96950000A94B54 /* SpeechRecognitionService.swift */,
+				C4D34C922D9694DA00A94B54 /* CloudStorageViewController.swift */,
+				C4D34C932D9694DA00A94B54 /* VoiceTrainingViewController.swift */,
 				4A5C6F192B5CBDD0006C7BF7 /* AppDelegate.swift */,
 				4A5C6F1B2B5CBDD0006C7BF7 /* SceneDelegate.swift */,
-				4A5C6F2B2B5CBE43006C7BF7 /* CameraViewController.swift */,
-				4A5C6F2D2B5CBE65006C7BF7 /* SettingsViewController.swift */,
-				4A5C6F2F2B5CBE78006C7BF7 /* VideoSettings.swift */,
-				4A5C6F312B5CBE8D006C7BF7 /* CameraService.swift */,
-				4A5C6F332B5CBEA2006C7BF7 /* VideoPlayerService.swift */,
-				4A5C6F352B5CBEB7006C7BF7 /* CameraControlsView.swift */,
+				4A5C6F2B2B5CBE43006C7BF7 /* Controllers/CameraViewController.swift */,
+				4A5C6F2D2B5CBE65006C7BF7 /* Controllers/SettingsViewController.swift */,
+				4A5C6F2F2B5CBE78006C7BF7 /* Models/VideoSettings.swift */,
+				4A5C6F312B5CBE8D006C7BF7 /* Services/CameraService.swift */,
+				4A5C6F332B5CBEA2006C7BF7 /* Services/VideoPlayerService.swift */,
+				4A5C6F352B5CBEB7006C7BF7 /* Views/CameraControlsView.swift */,
 				4A5C6F222B5CBDD1006C7BF7 /* LaunchScreen.storyboard */,
 				4A5C6F252B5CBDD1006C7BF7 /* Info.plist */,
 			);
@@ -145,14 +157,18 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4A5C6F2C2B5CBE43006C7BF7 /* CameraViewController.swift in Sources */,
+				4A5C6F2C2B5CBE43006C7BF7 /* Controllers/CameraViewController.swift in Sources */,
 				4A5C6F1A2B5CBDD0006C7BF7 /* AppDelegate.swift in Sources */,
-				4A5C6F302B5CBE78006C7BF7 /* VideoSettings.swift in Sources */,
-				4A5C6F362B5CBEB7006C7BF7 /* CameraControlsView.swift in Sources */,
+				4A5C6F302B5CBE78006C7BF7 /* Models/VideoSettings.swift in Sources */,
+				4A5C6F362B5CBEB7006C7BF7 /* Views/CameraControlsView.swift in Sources */,
+				C4D34C942D9694DA00A94B54 /* CloudStorageViewController.swift in Sources */,
+				C4D34C952D9694DA00A94B54 /* VoiceTrainingViewController.swift in Sources */,
 				4A5C6F1C2B5CBDD0006C7BF7 /* SceneDelegate.swift in Sources */,
-				4A5C6F342B5CBEA2006C7BF7 /* VideoPlayerService.swift in Sources */,
-				4A5C6F322B5CBE8D006C7BF7 /* CameraService.swift in Sources */,
-				4A5C6F2E2B5CBE65006C7BF7 /* SettingsViewController.swift in Sources */,
+				4A5C6F342B5CBEA2006C7BF7 /* Services/VideoPlayerService.swift in Sources */,
+				4A5C6F322B5CBE8D006C7BF7 /* Services/CameraService.swift in Sources */,
+				C4D34C992D96952700A94B54 /* CloudStorageService.swift in Sources */,
+				4A5C6F2E2B5CBE65006C7BF7 /* Controllers/SettingsViewController.swift in Sources */,
+				C4D34C972D96950000A94B54 /* SpeechRecognitionService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -106,7 +106,7 @@ class SpeechRecognitionService {
                 
                 // Extract confidence from transcription segments if available
                 for segment in result.bestTranscription.segments {
-                    if #available(iOS 13.0, *), let confidence = segment.confidence {
+                    if #available(iOS 13.0, *), let confidence = segment.confidence as Float? {
                         bestConfidence = max(bestConfidence, confidence)
                     } else {
                         bestConfidence = 0.8 // Default confidence if not available
