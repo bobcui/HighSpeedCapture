@@ -56,6 +56,15 @@ class CameraViewController: UIViewController {
         return button
     }()
     
+    private lazy var voiceTrainingButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "waveform"), for: .normal)
+        button.tintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(voiceTrainingButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
     private lazy var timeLabel: UILabel = {
         let label = UILabel()
         label.text = "00:00"
@@ -82,6 +91,43 @@ class CameraViewController: UIViewController {
         button.isHidden = true
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(playbackControlButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var speedControlView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        view.layer.cornerRadius = 8
+        view.isHidden = true
+        view.translatesAutoresizingMaskIntoConstraints = false
+        return view
+    }()
+    
+    private lazy var speedLabel: UILabel = {
+        let label = UILabel()
+        label.text = "1/2 Speed"
+        label.textColor = .white
+        label.font = UIFont.systemFont(ofSize: 14, weight: .medium)
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private lazy var speedSlowerButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "minus.circle"), for: .normal)
+        button.tintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(speedSlowerButtonTapped), for: .touchUpInside)
+        return button
+    }()
+    
+    private lazy var speedFasterButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setImage(UIImage(systemName: "plus.circle"), for: .normal)
+        button.tintColor = .white
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.addTarget(self, action: #selector(speedFasterButtonTapped), for: .touchUpInside)
         return button
     }()
     
@@ -130,10 +176,14 @@ class CameraViewController: UIViewController {
         view.addSubview(recordButton)
         view.addSubview(settingsButton)
         view.addSubview(voiceControlButton)
+        view.addSubview(voiceTrainingButton)
         view.addSubview(timeLabel)
         view.addSubview(recordingIndicator)
         view.addSubview(playbackControlButton)
         view.addSubview(voiceStatusLabel)
+        
+        // Setup speed control UI
+        setupSpeedControlUI()
         
         // Setup constraints
         NSLayoutConstraint.activate([
@@ -161,6 +211,12 @@ class CameraViewController: UIViewController {
             voiceControlButton.widthAnchor.constraint(equalToConstant: 44),
             voiceControlButton.heightAnchor.constraint(equalToConstant: 44),
             
+            // Voice training button
+            voiceTrainingButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20),
+            voiceTrainingButton.leadingAnchor.constraint(equalTo: voiceControlButton.trailingAnchor, constant: 15),
+            voiceTrainingButton.widthAnchor.constraint(equalToConstant: 44),
+            voiceTrainingButton.heightAnchor.constraint(equalToConstant: 44),
+            
             // Voice status label
             voiceStatusLabel.topAnchor.constraint(equalTo: voiceControlButton.bottomAnchor, constant: 5),
             voiceStatusLabel.centerXAnchor.constraint(equalTo: voiceControlButton.centerXAnchor),
@@ -180,6 +236,39 @@ class CameraViewController: UIViewController {
             playbackControlButton.centerYAnchor.constraint(equalTo: view.centerYAnchor),
             playbackControlButton.widthAnchor.constraint(equalToConstant: 60),
             playbackControlButton.heightAnchor.constraint(equalToConstant: 60)
+        ])
+    }
+    
+    private func setupSpeedControlUI() {
+        // Add speed control to view
+        view.addSubview(speedControlView)
+        speedControlView.addSubview(speedSlowerButton)
+        speedControlView.addSubview(speedLabel)
+        speedControlView.addSubview(speedFasterButton)
+        
+        NSLayoutConstraint.activate([
+            // Speed control view
+            speedControlView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            speedControlView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -30),
+            speedControlView.heightAnchor.constraint(equalToConstant: 44),
+            speedControlView.widthAnchor.constraint(equalToConstant: 180),
+            
+            // Speed slower button
+            speedSlowerButton.leadingAnchor.constraint(equalTo: speedControlView.leadingAnchor, constant: 12),
+            speedSlowerButton.centerYAnchor.constraint(equalTo: speedControlView.centerYAnchor),
+            speedSlowerButton.widthAnchor.constraint(equalToConstant: 30),
+            speedSlowerButton.heightAnchor.constraint(equalToConstant: 30),
+            
+            // Speed label
+            speedLabel.centerYAnchor.constraint(equalTo: speedControlView.centerYAnchor),
+            speedLabel.centerXAnchor.constraint(equalTo: speedControlView.centerXAnchor),
+            speedLabel.widthAnchor.constraint(equalToConstant: 80),
+            
+            // Speed faster button
+            speedFasterButton.trailingAnchor.constraint(equalTo: speedControlView.trailingAnchor, constant: -12),
+            speedFasterButton.centerYAnchor.constraint(equalTo: speedControlView.centerYAnchor),
+            speedFasterButton.widthAnchor.constraint(equalToConstant: 30),
+            speedFasterButton.heightAnchor.constraint(equalToConstant: 30)
         ])
     }
     
@@ -328,13 +417,18 @@ class CameraViewController: UIViewController {
         isShowingRecordingUI = false
         
         do {
-            // Setup player
+            // Setup player and set delegate
+            videoPlayerService.delegate = self
             let playerLayer = try videoPlayerService.setupPlayer(with: url, in: previewView)
             self.playerLayer = playerLayer
             previewView.layer.addSublayer(playerLayer)
             
             // Show playback UI
             playbackControlButton.isHidden = false
+            speedControlView.isHidden = false
+            
+            // Update speed label
+            speedLabel.text = videoPlayerService.currentPlaybackSpeed.displayName
             
             // Start playback
             videoPlayerService.play()
@@ -352,6 +446,14 @@ class CameraViewController: UIViewController {
         playbackControlButton.setImage(UIImage(systemName: symbolName), for: .normal)
     }
     
+    @objc private func speedFasterButtonTapped() {
+        videoPlayerService.cyclePlaybackSpeed()
+    }
+    
+    @objc private func speedSlowerButtonTapped() {
+        videoPlayerService.previousPlaybackSpeed()
+    }
+    
     private func resetToCamera() {
         // Clear player
         videoPlayerService.clearPlayer()
@@ -362,6 +464,7 @@ class CameraViewController: UIViewController {
         previewLayer?.isHidden = false
         recordButton.isHidden = false
         playbackControlButton.isHidden = true
+        speedControlView.isHidden = true
         isShowingRecordingUI = true
     }
     
@@ -419,6 +522,23 @@ extension CameraViewController: AVCaptureFileOutputRecordingDelegate {
         // Stop recording UI and show playback
         DispatchQueue.main.async {
             self.stopRecording()
+        }
+    }
+}
+
+// MARK: - VideoPlayerDelegate
+extension CameraViewController: VideoPlayerDelegate {
+    func playerDidUpdatePlaybackSpeed(_ speed: PlaybackSpeed) {
+        // Update the label with the new speed
+        speedLabel.text = speed.displayName
+        
+        // Add animation feedback for speed change
+        UIView.animate(withDuration: 0.2, animations: {
+            self.speedLabel.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
+        }) { _ in
+            UIView.animate(withDuration: 0.2) {
+                self.speedLabel.transform = .identity
+            }
         }
     }
 }

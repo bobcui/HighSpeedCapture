@@ -44,18 +44,15 @@ class SettingsViewController: UIViewController {
     }()
     
     private lazy var playbackSpeedSegmentedControl: UISegmentedControl = {
-        let items = ["0.25x", "0.5x", "0.75x"]
+        // Create items from PlaybackSpeed enum display names
+        let items = PlaybackSpeed.allCases.map { $0.displayName }
         let segmentedControl = UISegmentedControl(items: items)
         
         // Set default segment based on current settings
-        if videoSettings.playbackSpeed == 0.25 {
-            segmentedControl.selectedSegmentIndex = 0
-        } else if videoSettings.playbackSpeed == 0.5 {
-            segmentedControl.selectedSegmentIndex = 1
-        } else if videoSettings.playbackSpeed == 0.75 {
-            segmentedControl.selectedSegmentIndex = 2
+        if let index = PlaybackSpeed.allCases.firstIndex(of: videoSettings.playbackSpeed) {
+            segmentedControl.selectedSegmentIndex = index
         } else {
-            segmentedControl.selectedSegmentIndex = 1 // Default to 0.5x
+            segmentedControl.selectedSegmentIndex = PlaybackSpeed.allCases.firstIndex(of: .half) ?? 0
         }
         
         segmentedControl.addTarget(self, action: #selector(playbackSpeedChanged(_:)), for: .valueChanged)
@@ -163,15 +160,10 @@ class SettingsViewController: UIViewController {
     }
     
     @objc private func playbackSpeedChanged(_ sender: UISegmentedControl) {
-        switch sender.selectedSegmentIndex {
-        case 0:
-            videoSettings.playbackSpeed = 0.25
-        case 1:
-            videoSettings.playbackSpeed = 0.5
-        case 2:
-            videoSettings.playbackSpeed = 0.75
-        default:
-            videoSettings.playbackSpeed = 0.5
+        if sender.selectedSegmentIndex >= 0 && sender.selectedSegmentIndex < PlaybackSpeed.allCases.count {
+            videoSettings.playbackSpeed = PlaybackSpeed.allCases[sender.selectedSegmentIndex]
+        } else {
+            videoSettings.playbackSpeed = .half // Default to half speed
         }
     }
     

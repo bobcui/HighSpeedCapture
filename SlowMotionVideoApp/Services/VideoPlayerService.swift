@@ -8,6 +8,10 @@ enum PlayerError: Error {
     case playerItemFailedToLoad
 }
 
+protocol VideoPlayerDelegate: AnyObject {
+    func playerDidUpdatePlaybackSpeed(_ speed: PlaybackSpeed)
+}
+
 class VideoPlayerService {
     
     // MARK: - Properties
@@ -16,6 +20,9 @@ class VideoPlayerService {
     private var timeObserverToken: Any?
     private var looper: AVPlayerLooper?
     private var playerItem: AVPlayerItem?
+    
+    weak var delegate: VideoPlayerDelegate?
+    private(set) var currentPlaybackSpeed: PlaybackSpeed
     
     var isPlaying: Bool {
         return player?.rate != 0
@@ -29,11 +36,12 @@ class VideoPlayerService {
         return player?.currentItem?.duration
     }
     
-    let videoSettings: VideoSettings
+    private var videoSettings: VideoSettings
     
     // MARK: - Init
     init(videoSettings: VideoSettings = .default) {
         self.videoSettings = videoSettings
+        self.currentPlaybackSpeed = videoSettings.playbackSpeed
     }
     
     deinit {
@@ -53,7 +61,7 @@ class VideoPlayerService {
         
         // Create player with the item
         let player = AVQueuePlayer(playerItem: playerItem)
-        player.rate = videoSettings.playbackSpeed  // Set to play at half speed
+        player.rate = videoSettings.playbackSpeedValue  // Set initial playback speed
         self.player = player
         
         // Create player looper
@@ -97,7 +105,7 @@ class VideoPlayerService {
     // MARK: - Player Control
     func play() {
         player?.play()
-        player?.rate = videoSettings.playbackSpeed
+        player?.rate = currentPlaybackSpeed.rawValue
     }
     
     func pause() {
@@ -110,6 +118,48 @@ class VideoPlayerService {
         } else {
             play()
         }
+    }
+    
+    func setPlaybackSpeed(_ speed: PlaybackSpeed) {
+        currentPlaybackSpeed = speed
+        if isPlaying {
+            player?.rate = speed.rawValue
+        }
+        delegate?.playerDidUpdatePlaybackSpeed(speed)
+    }
+    
+    func cyclePlaybackSpeed() {
+        // Get all playback speeds
+        let speeds = PlaybackSpeed.allCases
+        
+        // Find the current speed index
+        guard let currentIndex = speeds.firstIndex(of: currentPlaybackSpeed) else {
+            return
+        }
+        
+        // Get next speed (or cycle back to first)
+        let nextIndex = (currentIndex + 1) % speeds.count
+        let nextSpeed = speeds[nextIndex]
+        
+        // Set the new speed
+        setPlaybackSpeed(nextSpeed)
+    }
+    
+    func previousPlaybackSpeed() {
+        // Get all playback speeds
+        let speeds = PlaybackSpeed.allCases
+        
+        // Find the current speed index
+        guard let currentIndex = speeds.firstIndex(of: currentPlaybackSpeed) else {
+            return
+        }
+        
+        // Get previous speed (or cycle to last)
+        let previousIndex = (currentIndex - 1 + speeds.count) % speeds.count
+        let previousSpeed = speeds[previousIndex]
+        
+        // Set the new speed
+        setPlaybackSpeed(previousSpeed)
     }
     
     func clearPlayer() {
