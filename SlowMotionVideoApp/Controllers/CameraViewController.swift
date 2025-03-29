@@ -165,6 +165,29 @@ class CameraViewController: UIViewController {
         return button
     }()
     
+    private lazy var statusLabel: UILabel = {
+        let label = UILabel()
+        label.textAlignment = .center
+        label.font = UIFont.boldSystemFont(ofSize: 20)
+        label.textColor = .white
+        label.isHidden = true
+        label.layer.cornerRadius = 8
+        label.clipsToBounds = true
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    private lazy var progressBar: UIProgressView = {
+        let progressView = UIProgressView(progressViewStyle: .bar)
+        progressView.trackTintColor = UIColor.darkGray.withAlphaComponent(0.6)
+        progressView.progressTintColor = .systemBlue
+        progressView.layer.cornerRadius = 2
+        progressView.clipsToBounds = true
+        progressView.isHidden = true
+        progressView.translatesAutoresizingMaskIntoConstraints = false
+        return progressView
+    }()
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -251,6 +274,8 @@ class CameraViewController: UIViewController {
         view.addSubview(voiceStatusLabel)
         view.addSubview(cloudStorageButton)
         view.addSubview(switchCameraButton)
+        view.addSubview(statusLabel)
+        view.addSubview(progressBar)
         
         // Setup speed control UI
         setupSpeedControlUI()
@@ -317,7 +342,19 @@ class CameraViewController: UIViewController {
             switchCameraButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
             switchCameraButton.topAnchor.constraint(equalTo: voiceStatusLabel.bottomAnchor, constant: 20),
             switchCameraButton.widthAnchor.constraint(equalToConstant: 44),
-            switchCameraButton.heightAnchor.constraint(equalToConstant: 44)
+            switchCameraButton.heightAnchor.constraint(equalToConstant: 44),
+            
+            // Status Label
+            statusLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            statusLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 60),
+            statusLabel.widthAnchor.constraint(equalToConstant: 200),
+            statusLabel.heightAnchor.constraint(equalToConstant: 40),
+            
+            // Progress Bar
+            progressBar.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            progressBar.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 8),
+            progressBar.widthAnchor.constraint(equalToConstant: 280),
+            progressBar.heightAnchor.constraint(equalToConstant: 6)
         ])
     }
     
@@ -503,17 +540,46 @@ class CameraViewController: UIViewController {
     
     private func updateUIForRecording(_ isRecording: Bool) {
         if isRecording {
+            // Update button and recording indicator
             recordButton.setTitle("Stop", for: .normal)
             recordingIndicator.isHidden = false
+            
             // Start recording indicator animation
             UIView.animate(withDuration: 0.8, delay: 0, options: [.repeat, .autoreverse], animations: {
                 self.recordingIndicator.alpha = 0.3
             })
+            
+            // Show "RECORDING" status with progress
+            statusLabel.isHidden = false
+            statusLabel.text = "RECORDING"
+            statusLabel.backgroundColor = UIColor.systemRed.withAlphaComponent(0.7)
+            
+            // Setup and show progress bar
+            progressBar.isHidden = false
+            progressBar.progressTintColor = .systemRed
+            
+            // Start progress bar animation based on recording duration
+            let duration = cameraService.videoSettings.clipDuration
+            progressBar.progress = 0.0
+            
+            // Animate progress over time
+            UIView.animate(withDuration: TimeInterval(duration), delay: 0, options: [.curveLinear], animations: {
+                self.progressBar.progress = 1.0
+            })
         } else {
+            // Reset recording UI
             recordButton.setTitle("Ready", for: .normal)
             recordingIndicator.isHidden = true
             recordingIndicator.alpha = 1.0
             recordingIndicator.layer.removeAllAnimations()
+            
+            // Hide status indicators
+            statusLabel.isHidden = true
+            progressBar.isHidden = true
+            progressBar.progress = 0.0
+            
+            // Remove any animations
+            progressBar.layer.removeAllAnimations()
         }
     }
     
@@ -545,11 +611,42 @@ class CameraViewController: UIViewController {
             // Update speed label
             speedLabel.text = videoPlayerService.currentPlaybackSpeed.displayName
             
+            // Show "REPLAYING" status
+            statusLabel.isHidden = false
+            statusLabel.text = "REPLAYING"
+            statusLabel.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.7)
+            
+            // Setup progress bar for looping playback
+            progressBar.isHidden = false
+            progressBar.progressTintColor = .systemBlue
+            progressBar.progress = 0.0
+            
+            // Start progress bar animation
+            startPlaybackProgressBar()
+            
             // Start playback
             videoPlayerService.play()
         } catch {
             showAlert(title: "Playback Error", message: error.localizedDescription)
             resetToCamera()
+        }
+    }
+    
+    private func startPlaybackProgressBar() {
+        // Get video duration and apply speed adjustment
+        let duration = Double(cameraService.videoSettings.clipDuration)
+        let adjustedDuration = duration * Double(1.0 / videoPlayerService.currentPlaybackSpeed.rawValue)
+        
+        // Reset and animate progress bar
+        progressBar.progress = 0.0
+        UIView.animate(withDuration: adjustedDuration, delay: 0, options: [.curveLinear], animations: {
+            self.progressBar.progress = 1.0
+        }) { _ in
+            // If playback is still active and looping is enabled, restart the progress bar
+            if !self.isShowingRecordingUI && self.videoPlayerService.isPlaying {
+                self.progressBar.progress = 0.0
+                self.startPlaybackProgressBar()
+            }
         }
     }
     
@@ -581,6 +678,12 @@ class CameraViewController: UIViewController {
         playbackControlButton.isHidden = true
         speedControlView.isHidden = true
         isShowingRecordingUI = true
+        
+        // Hide status indicators
+        statusLabel.isHidden = true
+        progressBar.isHidden = true
+        progressBar.progress = 0.0
+        progressBar.layer.removeAllAnimations()
         
         // Update cloud storage button appearance based on recording status
         cloudStorageButton.isEnabled = hasRecordedVideo
@@ -745,6 +848,18 @@ extension CameraViewController: VideoPlayerDelegate {
         // Update the label with the new speed
         speedLabel.text = speed.displayName
         
+        // Update progress bar color based on speed
+        if speed.isFastForward {
+            progressBar.progressTintColor = .systemOrange
+        } else if speed.isSlowMotion {
+            progressBar.progressTintColor = .systemBlue
+        } else {
+            progressBar.progressTintColor = .systemGreen
+        }
+        
+        // Update status label with speed information
+        statusLabel.text = "REPLAYING \(speed.displayName)"
+        
         // Add animation feedback for speed change
         UIView.animate(withDuration: 0.2, animations: {
             self.speedLabel.transform = CGAffineTransform(scaleX: 1.2, y: 1.2)
@@ -753,6 +868,11 @@ extension CameraViewController: VideoPlayerDelegate {
                 self.speedLabel.transform = .identity
             }
         }
+        
+        // Reset and restart progress bar with adjusted duration
+        progressBar.layer.removeAllAnimations()
+        progressBar.progress = 0.0
+        startPlaybackProgressBar()
     }
 }
 

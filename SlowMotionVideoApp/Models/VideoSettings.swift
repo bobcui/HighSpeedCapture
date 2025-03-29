@@ -6,20 +6,40 @@ enum PlaybackSpeed: Float, CaseIterable {
     case half = 0.5
     case threeQuarters = 0.75
     case normal = 1.0
+    case oneAndQuarter = 1.25
+    case oneAndHalf = 1.5
+    case oneAndThreeQuarters = 1.75
+    case double = 2.0
     
     var displayName: String {
         switch self {
         case .quarter:
-            return "1/4 Speed"
+            return "0.25x Speed"
         case .third:
-            return "1/3 Speed"
+            return "0.33x Speed"
         case .half:
-            return "1/2 Speed"
+            return "0.5x Speed"
         case .threeQuarters:
-            return "3/4 Speed"
+            return "0.75x Speed"
         case .normal:
-            return "Normal Speed"
+            return "1.0x Speed"
+        case .oneAndQuarter:
+            return "1.25x Speed"
+        case .oneAndHalf:
+            return "1.5x Speed"
+        case .oneAndThreeQuarters:
+            return "1.75x Speed"
+        case .double:
+            return "2.0x Speed"
         }
+    }
+    
+    var isFastForward: Bool {
+        return self.rawValue > 1.0
+    }
+    
+    var isSlowMotion: Bool {
+        return self.rawValue < 1.0
     }
     
     static var defaultSpeed: PlaybackSpeed {
