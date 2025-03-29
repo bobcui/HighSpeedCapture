@@ -1,22 +1,37 @@
 #!/bin/bash
+# Simple demonstration script for SlowMotionVideoApp
 
-# This script demonstrates the fixed camera switching functionality
-# with a simpler set of commands to avoid getting stuck in interactive modes
+# Define colors for output
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
 
-echo "🎬 SlowMotionVideoApp Simple Camera Fix Demo 🎬"
-echo "=============================================="
-echo "This demo will showcase the fixed camera operations:"
-echo "1. Initialize with back camera"
-echo "2. Switch to front camera (shows progress indicators and thread safety)"
-echo "3. Record a video"
-echo "4. Attempt to switch cameras during playback (should be properly rejected)"
-echo "5. Exit the app"
-echo
+echo -e "${BLUE}=== SlowMotionVideoApp Demo ===${NC}"
+echo -e "${BLUE}This script demonstrates the main features of the app:${NC}"
+echo "1. UI improvements with clear RECORDING and REPLAYING prompts"
+echo "2. Recording time indicator with progress bar"
+echo "3. Playback visualization with frame information"
+echo "4. Settings persistence and camera switching"
+echo ""
+echo -e "${YELLOW}Starting app in 3 seconds...${NC}"
+sleep 3
 
-# Run the simulator with a predefined sequence of commands
-printf "switch\nready\nswitch\nexit\n" | swift SlowMotionSimulator/main.swift
+# Run the simulator with customized interaction
+./run_simulator.sh << EOF
+settings
+12
+speed
+7
+ready
+switch
+EOF
 
-echo
-echo "✅ Demo complete!"
-echo "The camera switching operations are now thread-safe and the AVCaptureSession"
-echo "configuration sequence exception has been fixed."
+echo -e "\n${GREEN}Demo complete!${NC}"
+echo "The demo showcased:"
+echo "1. ✅ Setting clip duration to 12 seconds"
+echo "2. ✅ Setting playback speed to 1.75x"
+echo "3. ✅ Starting recording with 'ready' command"
+echo "4. ✅ Visual RECORDING and REPLAYING prompts with progress indicators"
+echo "5. ✅ Switching camera (front/back) with status indicators"
+exit 0

@@ -191,6 +191,7 @@ enum CameraPosition {
 }
 
 class SimulatedApp {
+    // Main app state
     var videoSettings = VideoSettings.default
     let speechRecognition = SpeechRecognitionSimulator()
     let cloudStorageService = CloudStorageService()
@@ -199,7 +200,36 @@ class SimulatedApp {
     var hasRecordedVideo = false
     var currentCameraPosition: CameraPosition = .back
     
+    // Cached settings for future use
+    private var savedSettings: [String: Any] = [
+        "clipDuration": 10,
+        "playbackSpeed": 0.5
+    ]
+    
+    // Load saved settings if available
+    private func loadSavedSettings() {
+        if let duration = savedSettings["clipDuration"] as? Int {
+            videoSettings.clipDuration = duration
+        }
+        
+        if let speed = savedSettings["playbackSpeed"] as? Float {
+            videoSettings.playbackSpeed = PlaybackSpeed.fromValue(speed)
+        }
+    }
+    
+    // Save settings for persistence
+    private func saveSettings() {
+        savedSettings["clipDuration"] = videoSettings.clipDuration
+        savedSettings["playbackSpeed"] = videoSettings.playbackSpeed.rawValue
+        
+        // Display confirmation to user
+        print("Settings saved successfully!")
+    }
+    
     func run() {
+        // Load any saved settings first
+        loadSavedSettings()
+        
         print("Current settings: \(videoSettings.clipDuration) seconds clip duration")
         print("Current playback speed: \(videoSettings.playbackSpeed.displayName)")
         print("Voice control: \(isVoiceControlEnabled ? "ON" : "OFF")")
@@ -280,6 +310,9 @@ class SimulatedApp {
         // Exit playback mode if active
         isInPlaybackMode = false
         
+        print("=== 📹 RECORDING IN PROGRESS 📹 ===")
+        print("Recording time bar: [          ] 0%")
+        
         // Add a message specific to the current camera position
         if currentCameraPosition == .front {
             print("Recording started using \(currentCameraPosition.description)... (will record for \(videoSettings.clipDuration) seconds)")
@@ -289,17 +322,25 @@ class SimulatedApp {
             print("Capturing 120FPS high-quality video with main camera")
         }
         
-        // Simulate countdown
-        for i in (1...videoSettings.clipDuration).reversed() {
-            print("\(i) seconds remaining...")
-            // In a real app, we'd sleep here, but we'll skip that in the simulation
+        // Simulate countdown with progress bar
+        let totalDuration = videoSettings.clipDuration
+        for i in (1...totalDuration).reversed() {
+            let percentage = 100 - Int(Double(i) / Double(totalDuration) * 100.0)
+            let progressBarWidth = 10
+            let filledBlocks = Int(Double(progressBarWidth) * Double(percentage) / 100.0)
+            let emptyBlocks = progressBarWidth - filledBlocks
+            let progressBar = String(repeating: "█", count: filledBlocks) + String(repeating: " ", count: emptyBlocks)
+            
+            print("\r\u{1B}[2K\(i) seconds remaining... Recording time bar: [\(progressBar)] \(percentage)%", terminator: "")
+            fflush(stdout)
             Thread.sleep(forTimeInterval: 0.2)  // Speed up the simulation
+            print("")  // Add a newline for each step in the simulator
         }
         
         // Set flag that we have a recorded video
         hasRecordedVideo = true
         
-        print("Recording complete!")
+        print("\n=== RECORDING COMPLETE ===")
         print("Now playing back at \(videoSettings.playbackSpeed.displayName) in a loop...")
         simulatePlayback()
         print("Cloud storage available with 'cloud' command")
@@ -311,6 +352,9 @@ class SimulatedApp {
         // Simulate looping playback at configured speed
         isInPlaybackMode = true
         
+        print("\n=== 🔄 REPLAYING VIDEO 🔄 ===")
+        print("Playback Speed: \(videoSettings.playbackSpeed.displayName)")
+        
         let speedEffect: String
         if videoSettings.playbackSpeed.isSlow {
             speedEffect = "slow motion"
@@ -320,14 +364,25 @@ class SimulatedApp {
             speedEffect = "normal speed"
         }
         
+        // Show playback progress bar
+        let progressBarWidth = 20
+        
         print("Playback simulation at \(videoSettings.playbackSpeed.displayName) (press Enter to continue):")
-        print("Frame 1 (\(speedEffect))...")
-        Thread.sleep(forTimeInterval: 0.5)
-        print("Frame 2 (\(speedEffect))...")
-        Thread.sleep(forTimeInterval: 0.5)
-        print("Frame 3 (\(speedEffect))...")
-        Thread.sleep(forTimeInterval: 0.5)
-        print("Looping playback... (this would continue until a new recording begins)")
+        
+        // Simulate first loop with visual feedback
+        for i in 1...10 {
+            let percentage = i * 10
+            let filledBlocks = Int(Double(progressBarWidth) * Double(percentage) / 100.0)
+            let emptyBlocks = progressBarWidth - filledBlocks
+            let progressBar = String(repeating: "▶", count: filledBlocks) + String(repeating: "·", count: emptyBlocks)
+            
+            print("\rPlayback progress: [\(progressBar)] \(percentage)% - Frame \(i) (\(speedEffect))...", terminator: "")
+            fflush(stdout)
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        
+        print("\n\n=== LOOPING PLAYBACK ===")
+        print("Video will continue playing in a loop until a new recording begins")
         print("Use 'faster/+' or 'slower/-' to adjust playback speed (0.25x to 2.0x)")
     }
     
@@ -339,6 +394,14 @@ class SimulatedApp {
             if newDuration >= 5 && newDuration <= 30 {
                 videoSettings.clipDuration = newDuration
                 print("Duration updated to \(newDuration) seconds")
+                
+                // Save the new duration to persistent settings
+                saveSettings()
+                print("This setting will be preserved for future recordings.")
+                
+                // Update the main app display
+                print("\nCurrent settings: \(videoSettings.clipDuration) seconds clip duration")
+                print("Current playback speed: \(videoSettings.playbackSpeed.displayName)")
             } else {
                 print("Invalid duration. Please enter a value between 5 and 30.")
             }
@@ -363,6 +426,14 @@ class SimulatedApp {
             videoSettings.playbackSpeed = newSpeed
             print("Playback speed updated to \(newSpeed.displayName)")
             
+            // Save the new speed to persistent settings
+            saveSettings()
+            print("This setting will be preserved for future recordings.")
+            
+            // Update the main app display
+            print("\nCurrent settings: \(videoSettings.clipDuration) seconds clip duration")
+            print("Current playback speed: \(videoSettings.playbackSpeed.displayName)")
+            
             if isInPlaybackMode {
                 print("Applied new speed to current playback.")
             }
@@ -384,6 +455,9 @@ class SimulatedApp {
         // Set the new speed
         videoSettings.playbackSpeed = nextSpeed
         print("Increased to \(nextSpeed.displayName)")
+        
+        // Save the setting
+        saveSettings()
     }
     
     private func previousPlaybackSpeed() {
@@ -399,6 +473,9 @@ class SimulatedApp {
         // Set the new speed
         videoSettings.playbackSpeed = previousSpeed
         print("Decreased to \(previousSpeed.displayName)")
+        
+        // Save the setting
+        saveSettings()
     }
     
     // MARK: - Cloud Storage

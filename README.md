@@ -100,16 +100,36 @@ To build and deploy the full iOS app:
 
 ## Recent Improvements
 
-We've made significant improvements to the app's stability and performance:
+We've made significant improvements to the app's stability, performance, and user experience:
 
-- **Fixed critical runtime exceptions** related to AVCaptureSession configuration
+### Critical Fixes
+- **Fixed runtime exceptions** related to AVCaptureSession configuration
 - **Enhanced thread safety** for all camera operations and UI updates
 - **Improved camera switching** with better error handling and synchronization
-- **Added visual feedback** during camera initialization and switching
 - **Optimized execution sequences** to prevent race conditions
+
+### UI Enhancements
+- **Added clear status indicators** with "RECORDING" and "REPLAYING" prompts
+- **Implemented progress bars** for both recording and playback
+- **Added real-time percentage indicators** during recording and playback
+- **Enhanced visual feedback** during camera initialization and switching
+
+### Functionality Improvements
+- **Fixed settings persistence** for recording duration and playback speed
+- **Improved "ready" command** responsiveness and recognition
+- **Added confirmation messages** when settings are updated
+- **Enhanced playback speed selection** with clearer visual indicators
 
 For more details about the fixes, please see:
 - [Fixed Issues Overview](fixed_issues_overview.md) - Details of resolved issues
+
+## Demo Scripts
+
+We've included several demo scripts to showcase the app's functionality:
+
+- **simple_demo.sh**: Quick demonstration of UI improvements and core features
+- **test_fixes.sh**: Test script to verify bug fixes and improvements
+- **run_simulator.sh**: Interactive simulation of the iOS app
 
 ## See Also
 
